@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment;
 
 import com.example.focusvault.ui.FocusFragment;
 import com.example.focusvault.ui.NotesFragment;
+import com.example.focusvault.ui.ProfileFragment;
 import com.example.focusvault.ui.TodayFragment;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
@@ -32,6 +33,9 @@ public class MainActivity extends AppCompatActivity {
                 return true;
             } else if (itemId == R.id.nav_focus) {
                 loadFragment(new FocusFragment());
+                return true;
+            } else if (itemId == R.id.nav_profile) {
+                loadFragment(new ProfileFragment());
                 return true;
             }
             return false;

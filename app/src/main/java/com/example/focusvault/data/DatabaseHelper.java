@@ -121,9 +121,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public List<Note> getAllNotes() {
+        return getNotesWithFilter(null);
+    }
+
+    public List<Note> getNotesByDate(String date) {
+        return getNotesWithFilter(date);
+    }
+
+    private List<Note> getNotesWithFilter(String date) {
         List<Note> notes = new ArrayList<>();
         SQLiteDatabase db = getReadableDatabase();
-        Cursor cursor = db.query(TABLE_NOTES, null, null, null, null, null, "created_at DESC");
+        Cursor cursor;
+        if (date == null || date.isEmpty()) {
+            cursor = db.query(TABLE_NOTES, null, null, null, null, null, "created_at DESC");
+        } else {
+            cursor = db.query(TABLE_NOTES, null, "created_at LIKE ?", new String[]{date + "%"}, null, null, "created_at DESC");
+        }
 
         if (cursor.moveToFirst()) {
             do {
@@ -165,6 +178,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public int getTodayPomodoroCount(String date) {
+        return getPomodoroCountByDate(date);
+    }
+
+    public int getPomodoroCountByDate(String date) {
         SQLiteDatabase db = getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_POMODORO + " WHERE date(start_time) = ?", new String[]{date});
         int count = 0;
@@ -184,6 +201,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         cursor.close();
         return count;
+    }
+
+    public void clearAllData() {
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete(TABLE_TASKS, null, null);
+        db.delete(TABLE_NOTES, null, null);
+        db.delete(TABLE_POMODORO, null, null);
     }
 
     public String getTodayDate() {

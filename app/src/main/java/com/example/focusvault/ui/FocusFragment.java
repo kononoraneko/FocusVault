@@ -1,6 +1,8 @@
 package com.example.focusvault.ui;
 
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.LayoutInflater;
@@ -16,7 +18,6 @@ import androidx.fragment.app.Fragment;
 import com.example.focusvault.R;
 import com.example.focusvault.data.DatabaseHelper;
 import com.example.focusvault.model.Task;
-import com.google.android.material.chip.Chip;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import java.time.LocalDateTime;
@@ -26,16 +27,23 @@ import java.util.Locale;
 
 public class FocusFragment extends Fragment {
 
-    private static final int DEFAULT_DURATION_MIN = 25;
+    private static final String PREFS = "focusvault_prefs";
+    private static final String KEY_WORK_MIN = "work_minutes";
+    private static final String KEY_BREAK_MIN = "break_minutes";
+    private static final String KEY_LONG_BREAK_MIN = "long_break_minutes";
+    private static final String KEY_FOCUS_HELP_HIDDEN = "focus_help_hidden";
 
     private TextView timerText;
     private TextView sessionsTodayText;
     private TextView selectedTaskText;
+    private TextView timerSettingsInfoText;
     private Button startButton;
     private CircularProgressIndicator timerProgress;
     private CountDownTimer countDownTimer;
     private long timeLeftMillis;
-    private int selectedDurationMin = DEFAULT_DURATION_MIN;
+    private int selectedDurationMin = 25;
+    private int breakDurationMin = 5;
+    private int longBreakDurationMin = 15;
     private boolean isRunning = false;
     private int selectedTaskId = -1;
     private String selectedTaskName = "";
@@ -52,27 +60,18 @@ public class FocusFragment extends Fragment {
         timerText = view.findViewById(R.id.text_timer);
         selectedTaskText = view.findViewById(R.id.text_selected_task);
         sessionsTodayText = view.findViewById(R.id.text_focus_sessions_today);
+        timerSettingsInfoText = view.findViewById(R.id.text_timer_settings_info);
         timerProgress = view.findViewById(R.id.progress_timer);
         startButton = view.findViewById(R.id.button_start);
         Button pauseButton = view.findViewById(R.id.button_pause);
         Button resetButton = view.findViewById(R.id.button_reset);
-        Chip chip25 = view.findViewById(R.id.chip_25);
-        Chip chip50 = view.findViewById(R.id.chip_50);
 
+        View helpCard = view.findViewById(R.id.card_focus_help);
+        TextView hideHelpButton = view.findViewById(R.id.button_hide_focus_help);
+        setupHelpCard(helpCard, hideHelpButton);
+
+        loadTimerSettings();
         timeLeftMillis = minutesToMillis(selectedDurationMin);
-
-        chip25.setOnClickListener(v -> {
-            if (!isRunning) {
-                selectedDurationMin = 25;
-                resetTimer();
-            }
-        });
-        chip50.setOnClickListener(v -> {
-            if (!isRunning) {
-                selectedDurationMin = 50;
-                resetTimer();
-            }
-        });
 
         updateTimerText();
         updateTimerProgress();
@@ -99,8 +98,34 @@ public class FocusFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        loadTimerSettings();
+        if (!isRunning) {
+            timeLeftMillis = minutesToMillis(selectedDurationMin);
+        }
         updateSessionStats();
         updateSelectedTaskText();
+        updateTimerText();
+        updateTimerProgress();
+        updateStartButtonText();
+    }
+
+    private void setupHelpCard(View helpCard, TextView hideHelpButton) {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean hidden = prefs.getBoolean(KEY_FOCUS_HELP_HIDDEN, false);
+        helpCard.setVisibility(hidden ? View.GONE : View.VISIBLE);
+
+        hideHelpButton.setOnClickListener(v -> {
+            helpCard.setVisibility(View.GONE);
+            prefs.edit().putBoolean(KEY_FOCUS_HELP_HIDDEN, true).apply();
+        });
+    }
+
+    private void loadTimerSettings() {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        selectedDurationMin = prefs.getInt(KEY_WORK_MIN, 25);
+        breakDurationMin = prefs.getInt(KEY_BREAK_MIN, 5);
+        longBreakDurationMin = prefs.getInt(KEY_LONG_BREAK_MIN, 15);
+        timerSettingsInfoText.setText(getString(R.string.focus_timer_settings_info, selectedDurationMin, breakDurationMin, longBreakDurationMin));
     }
 
     private void showTaskSelectionAndStart() {
@@ -149,7 +174,7 @@ public class FocusFragment extends Fragment {
                 databaseHelper.insertPomodoroSession(sessionStartTime, selectedDurationMin, selectedTaskId);
                 updateSessionStats();
                 new AlertDialog.Builder(requireContext())
-                        .setMessage(R.string.pomodoro_completed)
+                        .setMessage(getString(R.string.pomodoro_completed_with_break, breakDurationMin, longBreakDurationMin))
                         .setPositiveButton(android.R.string.ok, null)
                         .show();
                 resetTimer();

@@ -13,12 +13,48 @@
         android:text="@string/focus_mode"
         android:textStyle="bold" />
 
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_focus_help"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        app:cardCornerRadius="14dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/help_focus"
+                android:textSize="12sp" />
+
+            <TextView
+                android:id="@+id/button_hide_focus_help"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/hide_help"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
     <TextView
         android:id="@+id/text_timer_hint"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
+        android:layout_marginTop="8dp"
         android:text="@string/focus_hint"
+        android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/text_timer_settings_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
         android:textSize="12sp" />
 
     <TextView
@@ -34,29 +70,6 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textSize="12sp" />
-
-    <com.google.android.material.chip.ChipGroup
-        android:id="@+id/chip_group_duration"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="14dp"
-        app:singleSelection="true">
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_25"
-            style="@style/Widget.Material3.Chip.Assist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:checked="true"
-            android:text="25 мин" />
-
-        <com.google.android.material.chip.Chip
-            android:id="@+id/chip_50"
-            style="@style/Widget.Material3.Chip.Assist"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="50 мин" />
-    </com.google.android.material.chip.ChipGroup>
 
     <FrameLayout
         android:layout_width="match_parent"

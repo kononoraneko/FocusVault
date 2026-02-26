@@ -42,11 +42,18 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp" />
 
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/tasks_progress_label"
+                    android:textSize="12sp" />
+
                 <com.google.android.material.progressindicator.LinearProgressIndicator
                     android:id="@+id/progress_tasks"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="4dp"
                     app:indicatorColor="?attr/colorSecondary"
                     app:trackColor="?attr/colorSurface"
                     app:trackThickness="8dp" />
@@ -55,35 +62,62 @@
                     android:id="@+id/text_progress_label"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
+                    android:layout_marginTop="4dp"
                     android:textSize="12sp" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
-                    android:orientation="horizontal">
+                    android:text="@string/pomodoro_progress_label"
+                    android:textSize="12sp" />
 
-                    <LinearLayout
-                        android:id="@+id/bar_done"
-                        android:layout_width="0dp"
-                        android:layout_height="12dp"
-                        android:layout_weight="1"
-                        android:background="?attr/colorSecondary" />
+                <com.google.android.material.progressindicator.LinearProgressIndicator
+                    android:id="@+id/progress_pomodoro"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    app:indicatorColor="?attr/colorPrimary"
+                    app:trackColor="?attr/colorSurface"
+                    app:trackThickness="8dp" />
 
-                    <Space
-                        android:layout_width="6dp"
-                        android:layout_height="12dp" />
-
-                    <LinearLayout
-                        android:id="@+id/bar_pending"
-                        android:layout_width="0dp"
-                        android:layout_height="12dp"
-                        android:layout_weight="1"
-                        android:background="?attr/colorPrimary" />
-                </LinearLayout>
+                <TextView
+                    android:id="@+id/text_pomodoro_progress_label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textSize="12sp" />
             </LinearLayout>
 
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_today_help"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="14dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/help_today"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:id="@+id/button_hide_today_help"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/hide_help"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <TextView

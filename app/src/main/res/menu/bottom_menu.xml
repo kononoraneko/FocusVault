@@ -12,4 +12,8 @@
         android:id="@+id/nav_focus"
         android:icon="@android:drawable/ic_lock_idle_alarm"
         android:title="@string/nav_focus" />
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@android:drawable/ic_menu_manage"
+        android:title="@string/nav_profile" />
 </menu>

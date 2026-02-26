@@ -1,6 +1,8 @@
 package com.example.focusvault.ui;
 
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -27,14 +29,17 @@ import java.util.List;
 
 public class TodayFragment extends Fragment {
 
+    private static final String PREFS = "focusvault_prefs";
+    private static final String KEY_TODAY_HELP_HIDDEN = "today_help_hidden";
+
     private DatabaseHelper databaseHelper;
     private TaskAdapter taskAdapter;
     private TextView pomodoroCountText;
     private TextView completedTasksText;
     private TextView progressLabel;
+    private TextView pomodoroProgressLabel;
     private LinearProgressIndicator tasksProgress;
-    private View doneBar;
-    private View pendingBar;
+    private LinearProgressIndicator pomodoroProgress;
 
     @Nullable
     @Override
@@ -48,9 +53,13 @@ public class TodayFragment extends Fragment {
         pomodoroCountText = view.findViewById(R.id.text_pomodoro_count);
         completedTasksText = view.findViewById(R.id.text_completed_count);
         progressLabel = view.findViewById(R.id.text_progress_label);
+        pomodoroProgressLabel = view.findViewById(R.id.text_pomodoro_progress_label);
         tasksProgress = view.findViewById(R.id.progress_tasks);
-        doneBar = view.findViewById(R.id.bar_done);
-        pendingBar = view.findViewById(R.id.bar_pending);
+        pomodoroProgress = view.findViewById(R.id.progress_pomodoro);
+
+        View helpCard = view.findViewById(R.id.card_today_help);
+        TextView hideHelpButton = view.findViewById(R.id.button_hide_today_help);
+        setupHelpCard(helpCard, hideHelpButton);
 
         taskAdapter = new TaskAdapter(new TaskAdapter.TaskActionListener() {
             @Override
@@ -83,6 +92,17 @@ public class TodayFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadData();
+    }
+
+    private void setupHelpCard(View helpCard, TextView hideHelpButton) {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean hidden = prefs.getBoolean(KEY_TODAY_HELP_HIDDEN, false);
+        helpCard.setVisibility(hidden ? View.GONE : View.VISIBLE);
+
+        hideHelpButton.setOnClickListener(v -> {
+            helpCard.setVisibility(View.GONE);
+            prefs.edit().putBoolean(KEY_TODAY_HELP_HIDDEN, true).apply();
+        });
     }
 
     private void showAddTaskDialog() {
@@ -173,32 +193,23 @@ public class TodayFragment extends Fragment {
         }
 
         int total = tasks.size();
-        int pending = Math.max(0, total - completedCount);
         int pomodoroCount = databaseHelper.getTodayPomodoroCount(date);
 
         pomodoroCountText.setText(getString(R.string.today_pomodoro_count, pomodoroCount));
         completedTasksText.setText(getString(R.string.today_completed_count, completedCount));
 
-        int progress = total == 0 ? 0 : (completedCount * 100 / total);
-        tasksProgress.setProgress(progress);
-        progressLabel.setText(getString(R.string.task_progress_percent, progress, completedCount, total));
+        int taskProgressPercent = total == 0 ? 0 : (completedCount * 100 / total);
+        tasksProgress.setProgress(taskProgressPercent);
+        progressLabel.setText(getString(R.string.task_progress_percent, taskProgressPercent, completedCount, total));
 
-        float doneWeight = Math.max(1, completedCount);
-        float pendingWeight = Math.max(1, pending);
-        LinearLayout.LayoutParams doneParams = (LinearLayout.LayoutParams) doneBar.getLayoutParams();
-        LinearLayout.LayoutParams pendingParams = (LinearLayout.LayoutParams) pendingBar.getLayoutParams();
-        doneParams.weight = doneWeight;
-        pendingParams.weight = pendingWeight;
-        doneBar.setLayoutParams(doneParams);
-        pendingBar.setLayoutParams(pendingParams);
+        int pomodoroTarget = 4;
+        int pomodoroPercent = Math.min(100, pomodoroCount * 100 / pomodoroTarget);
+        pomodoroProgress.setProgress(pomodoroPercent);
+        pomodoroProgressLabel.setText(getString(R.string.pomodoro_progress_percent, pomodoroPercent, pomodoroCount, pomodoroTarget));
 
         if (total == 0) {
             progressLabel.setText(getString(R.string.no_tasks_yet));
             tasksProgress.setProgress(0);
-            doneParams.weight = 1;
-            pendingParams.weight = 1;
-            doneBar.setLayoutParams(doneParams);
-            pendingBar.setLayoutParams(pendingParams);
         }
     }
 }

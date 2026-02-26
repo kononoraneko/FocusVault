@@ -1,6 +1,7 @@
 package com.example.focusvault.ui;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
@@ -8,13 +9,14 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.CalendarView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -24,23 +26,25 @@ import com.example.focusvault.data.DatabaseHelper;
 import com.example.focusvault.model.Note;
 import com.example.focusvault.ui.adapter.NoteAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 public class NotesFragment extends Fragment {
 
-    private static final String PREFS_NAME = "focusvault_prefs";
-    private static final String KEY_DARK_THEME = "dark_theme";
+    private static final String PREFS = "focusvault_prefs";
+    private static final String KEY_NOTES_HELP_HIDDEN = "notes_help_hidden";
 
     private DatabaseHelper databaseHelper;
     private NoteAdapter noteAdapter;
     private TextView emptyText;
     private TextInputEditText searchInput;
     private final List<Note> allNotes = new ArrayList<>();
+    private String selectedDateFilter = "";
 
     @Nullable
     @Override
@@ -53,9 +57,12 @@ public class NotesFragment extends Fragment {
         FloatingActionButton fab = view.findViewById(R.id.fab_add_note);
         searchInput = view.findViewById(R.id.input_search_notes);
         emptyText = view.findViewById(R.id.text_notes_empty);
-        MaterialSwitch themeSwitch = view.findViewById(R.id.switch_theme);
+        CalendarView calendarView = view.findViewById(R.id.calendar_notes);
+        Button clearFilterButton = view.findViewById(R.id.button_clear_notes_filter);
+        View helpCard = view.findViewById(R.id.card_notes_help);
+        TextView hideHelpButton = view.findViewById(R.id.button_hide_notes_help);
 
-        setupThemeSwitch(themeSwitch);
+        setupHelpCard(helpCard, hideHelpButton);
 
         noteAdapter = new NoteAdapter(new NoteAdapter.NoteActionListener() {
             @Override
@@ -88,22 +95,33 @@ public class NotesFragment extends Fragment {
             }
         });
 
+        calendarView.setOnDateChangeListener((view1, year, month, dayOfMonth) -> {
+            LocalDate date = LocalDate.of(year, month + 1, dayOfMonth);
+            selectedDateFilter = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
+            loadNotes();
+        });
+
+        clearFilterButton.setOnClickListener(v -> {
+            selectedDateFilter = "";
+            calendarView.setDate(System.currentTimeMillis(), true, true);
+            loadNotes();
+        });
+
         fab.setOnClickListener(v -> showNoteDialog(null));
+
         loadNotes();
 
         return view;
     }
 
-    private void setupThemeSwitch(MaterialSwitch themeSwitch) {
-        SharedPreferences preferences = requireContext().getSharedPreferences(PREFS_NAME, 0);
-        boolean isDark = preferences.getBoolean(KEY_DARK_THEME, false);
-        themeSwitch.setChecked(isDark);
+    private void setupHelpCard(View helpCard, TextView hideHelpButton) {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean hidden = prefs.getBoolean(KEY_NOTES_HELP_HIDDEN, false);
+        helpCard.setVisibility(hidden ? View.GONE : View.VISIBLE);
 
-        themeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            preferences.edit().putBoolean(KEY_DARK_THEME, isChecked).apply();
-            AppCompatDelegate.setDefaultNightMode(isChecked
-                    ? AppCompatDelegate.MODE_NIGHT_YES
-                    : AppCompatDelegate.MODE_NIGHT_NO);
+        hideHelpButton.setOnClickListener(v -> {
+            helpCard.setVisibility(View.GONE);
+            prefs.edit().putBoolean(KEY_NOTES_HELP_HIDDEN, true).apply();
         });
     }
 
@@ -149,7 +167,11 @@ public class NotesFragment extends Fragment {
 
     private void loadNotes() {
         allNotes.clear();
-        allNotes.addAll(databaseHelper.getAllNotes());
+        if (selectedDateFilter == null || selectedDateFilter.isEmpty()) {
+            allNotes.addAll(databaseHelper.getAllNotes());
+        } else {
+            allNotes.addAll(databaseHelper.getNotesByDate(selectedDateFilter));
+        }
         filterNotes(searchInput == null || searchInput.getText() == null ? "" : searchInput.getText().toString());
     }
 
