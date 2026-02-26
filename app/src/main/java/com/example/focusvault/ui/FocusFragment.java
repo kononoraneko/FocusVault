@@ -21,6 +21,8 @@ import com.example.focusvault.model.Task;
 import com.example.focusvault.notifications.FocusTimerReceiver;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,11 +33,10 @@ public class FocusFragment extends Fragment {
     private static final String KEY_BREAK_MIN = "break_minutes";
     private static final String KEY_LONG_BREAK_MIN = "long_break_minutes";
     private static final String KEY_FOCUS_HELP_HIDDEN = "focus_help_hidden";
-    private static final String KEY_TIMER_LEFT_MS = "timer_left_ms";
-    private static final String KEY_TIMER_RUNNING = "timer_running";
     private static final String KEY_SELECTED_TASK_ID = "selected_task_id";
     private static final String KEY_SELECTED_TASK_NAME = "selected_task_name";
     private static final String KEY_PHASE = "focus_phase";
+
     private static final String PHASE_WORK = "work";
     private static final String PHASE_BREAK = "break";
 
@@ -47,17 +48,22 @@ public class FocusFragment extends Fragment {
     private Button startButton;
     private Button pauseButton;
     private CircularProgressIndicator timerProgress;
+
     private CountDownTimer countDownTimer;
-    private long timeLeftMillis;
-    private int selectedDurationMin = 25;
+    private DatabaseHelper databaseHelper;
+
+    private int workDurationMin = 25;
     private int breakDurationMin = 5;
     private int longBreakDurationMin = 15;
-    private boolean isRunning = false;
-    private int selectedTaskId = -1;
-    private String selectedTaskName = "";
+
     private String activePhase = PHASE_WORK;
     private long phaseEndAtMillis = 0L;
-    private DatabaseHelper databaseHelper;
+    private long timeLeftMillis = 25 * 60_000L;
+    private boolean isRunning = false;
+
+    private int selectedTaskId = -1;
+    private String selectedTaskName = "";
+    private String currentSessionStart = "";
 
     @Nullable
     @Override
@@ -80,108 +86,44 @@ public class FocusFragment extends Fragment {
         TextView hideHelpButton = view.findViewById(R.id.button_hide_focus_help);
         setupHelpCard(helpCard, hideHelpButton);
 
-        loadTimerSettings();
-        restoreRuntimeState();
-
-        updateTimerText();
-        updateTimerProgress();
-        updateSessionStats();
-        updateSelectedTaskText();
-        updateStartButtonText();
-        updatePhaseText();
-
-        startButton.setOnClickListener(v -> {
-            if (!isRunning) {
-                if (PHASE_WORK.equals(activePhase) && selectedTaskId == -1) {
-                    showTaskSelectionAndStart();
-                } else {
-                    startTimer(activePhase, false);
-                }
-            }
-        });
-
+        startButton.setOnClickListener(v -> onStartClicked());
         pauseButton.setOnClickListener(v -> pauseTimer());
         resetButton.setOnClickListener(v -> resetTimer());
 
+        loadStateAndRefresh();
         return view;
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        loadTimerSettings();
-        restoreRuntimeState();
-        updateSessionStats();
-        updateSelectedTaskText();
-        updateTimerText();
-        updateTimerProgress();
-        updateStartButtonText();
-        updatePhaseText();
+        loadStateAndRefresh();
     }
 
-    private void setupHelpCard(View helpCard, TextView hideHelpButton) {
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        boolean hidden = prefs.getBoolean(KEY_FOCUS_HELP_HIDDEN, false);
-        helpCard.setVisibility(hidden ? View.GONE : View.VISIBLE);
-
-        hideHelpButton.setOnClickListener(v -> {
-            helpCard.setVisibility(View.GONE);
-            prefs.edit().putBoolean(KEY_FOCUS_HELP_HIDDEN, true).apply();
-        });
+    @Override
+    public void onPause() {
+        super.onPause();
+        persistUiState();
     }
 
-    private void loadTimerSettings() {
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        selectedDurationMin = sanitizeMinutes(prefs.getInt(KEY_WORK_MIN, 25));
-        breakDurationMin = sanitizeMinutes(prefs.getInt(KEY_BREAK_MIN, 5));
-        longBreakDurationMin = sanitizeMinutes(prefs.getInt(KEY_LONG_BREAK_MIN, 15));
-        timerSettingsInfoText.setText(getString(R.string.focus_timer_settings_info, selectedDurationMin, breakDurationMin, longBreakDurationMin));
+    @Override
+    public void onDestroyView() {
+        persistUiState();
+        stopLocalTicker();
+        super.onDestroyView();
     }
 
-    private void restoreRuntimeState() {
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        selectedTaskId = prefs.getInt(KEY_SELECTED_TASK_ID, -1);
-        selectedTaskName = prefs.getString(KEY_SELECTED_TASK_NAME, "");
-        activePhase = prefs.getString(KEY_PHASE, PHASE_WORK);
-        phaseEndAtMillis = prefs.getLong(FocusTimerReceiver.KEY_END_AT_MS, 0L);
-        boolean persistedRunning = prefs.getBoolean(FocusTimerReceiver.KEY_RUNNING, false);
-
-        if (persistedRunning && phaseEndAtMillis > System.currentTimeMillis()) {
-            timeLeftMillis = phaseEndAtMillis - System.currentTimeMillis();
-            if (!isRunning) {
-                startTimer(activePhase, true);
-            }
-            return;
-        }
-
-        long savedLeft = prefs.getLong(KEY_TIMER_LEFT_MS, -1L);
-        long phaseTotalMillis = getPhaseDurationMillis(activePhase);
-        if (savedLeft > 0 && savedLeft <= phaseTotalMillis) {
-            timeLeftMillis = savedLeft;
-        } else {
-            timeLeftMillis = phaseTotalMillis;
-        }
-
-        isRunning = prefs.getBoolean(KEY_TIMER_RUNNING, false) && timeLeftMillis > 0;
+    private void onStartClicked() {
         if (isRunning) {
-            startTimer(activePhase, true);
-        }
-    }
-
-    private void persistRuntimeState() {
-        if (!isAdded()) {
             return;
         }
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        prefs.edit()
-                .putLong(KEY_TIMER_LEFT_MS, timeLeftMillis)
-                .putBoolean(KEY_TIMER_RUNNING, isRunning)
-                .putInt(KEY_SELECTED_TASK_ID, selectedTaskId)
-                .putString(KEY_SELECTED_TASK_NAME, selectedTaskName == null ? "" : selectedTaskName)
-                .putString(KEY_PHASE, activePhase)
-                .putLong(FocusTimerReceiver.KEY_END_AT_MS, phaseEndAtMillis)
-                .putBoolean(FocusTimerReceiver.KEY_RUNNING, isRunning)
-                .apply();
+
+        if (PHASE_WORK.equals(activePhase) && selectedTaskId == -1) {
+            showTaskSelectionAndStart();
+            return;
+        }
+
+        startCurrentPhase();
     }
 
     private void showTaskSelectionAndStart() {
@@ -206,148 +148,232 @@ public class FocusFragment extends Fragment {
                     selectedTaskName = tasks.get(which).getTitle();
                     updateSelectedTaskText();
                     activePhase = PHASE_WORK;
-                    startTimer(PHASE_WORK, false);
+                    timeLeftMillis = phaseDurationMillis(PHASE_WORK);
+                    startCurrentPhase();
                 })
                 .show();
     }
 
-    private void startTimer(String phase, boolean restoring) {
+    private void startCurrentPhase() {
         if (!isAdded()) {
             return;
         }
-        if (countDownTimer != null) {
-            countDownTimer.cancel();
+
+        long total = phaseDurationMillis(activePhase);
+        if (timeLeftMillis <= 0 || timeLeftMillis > total) {
+            timeLeftMillis = total;
         }
 
-        activePhase = phase;
-        long totalPhaseMillis = getPhaseDurationMillis(phase);
-        if (!restoring) {
-            if (timeLeftMillis <= 0 || timeLeftMillis > totalPhaseMillis) {
-                timeLeftMillis = totalPhaseMillis;
-            }
-            phaseEndAtMillis = System.currentTimeMillis() + timeLeftMillis;
-            if (PHASE_WORK.equals(phase)) {
-                FocusTimerReceiver.markWorkSessionStarted(requireContext(), selectedTaskId);
-            }
-            FocusTimerReceiver.startPhaseAt(requireContext(), phase, phaseEndAtMillis);
+        if (PHASE_WORK.equals(activePhase) && currentSessionStart.isEmpty()) {
+            currentSessionStart = nowSqlDateTime();
+            FocusTimerReceiver.markWorkSessionStarted(requireContext(), selectedTaskId, currentSessionStart);
         }
 
-        countDownTimer = new CountDownTimer(timeLeftMillis, 1000) {
+        phaseEndAtMillis = System.currentTimeMillis() + timeLeftMillis;
+        FocusTimerReceiver.startPhaseAt(requireContext(), activePhase, phaseEndAtMillis);
+
+        startLocalTicker(timeLeftMillis);
+        isRunning = true;
+        refreshUi();
+    }
+
+    private void pauseTimer() {
+        if (!isRunning) {
+            return;
+        }
+
+        stopLocalTicker();
+        isRunning = false;
+        long now = System.currentTimeMillis();
+        timeLeftMillis = Math.max(0L, phaseEndAtMillis - now);
+
+        if (isAdded()) {
+            FocusTimerReceiver.cancelPhase(requireContext());
+        }
+
+        refreshUi();
+    }
+
+    private void resetTimer() {
+        stopLocalTicker();
+        isRunning = false;
+        phaseEndAtMillis = 0L;
+        activePhase = PHASE_WORK;
+        timeLeftMillis = phaseDurationMillis(PHASE_WORK);
+        currentSessionStart = "";
+        selectedTaskId = -1;
+        selectedTaskName = "";
+
+        if (isAdded()) {
+            FocusTimerReceiver.cancelPhase(requireContext());
+        }
+
+        refreshUi();
+    }
+
+    private void startLocalTicker(long durationMillis) {
+        stopLocalTicker();
+
+        countDownTimer = new CountDownTimer(durationMillis, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 timeLeftMillis = millisUntilFinished;
-                updateTimerText();
-                updateTimerProgress();
-                updateStartButtonText();
+                refreshUi();
             }
 
             @Override
             public void onFinish() {
+                isRunning = false;
+                timeLeftMillis = 0L;
+                phaseEndAtMillis = 0L;
+
                 if (!isAdded()) {
-                    isRunning = false;
-                    timeLeftMillis = 0;
                     return;
                 }
 
-                isRunning = false;
-                timeLeftMillis = 0;
-                phaseEndAtMillis = 0L;
-                updateTimerText();
-                updateTimerProgress();
                 FocusTimerReceiver.cancelPhase(requireContext());
 
                 if (PHASE_WORK.equals(activePhase)) {
                     FocusTimerReceiver.markWorkSessionRecorded(requireContext());
                     databaseHelper.insertPomodoroSession(
-                            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                            selectedDurationMin,
+                            currentSessionStart.isEmpty() ? nowSqlDateTime() : currentSessionStart,
+                            workDurationMin,
                             selectedTaskId
                     );
+                    currentSessionStart = "";
                     updateSessionStats();
                     showBreakStartDialog();
                 } else {
-                    new AlertDialog.Builder(requireContext())
-                            .setMessage(R.string.focus_break_finished_text)
-                            .setPositiveButton(android.R.string.ok, (dialog, which) -> switchToWorkMode())
-                            .show();
+                    switchToWorkPhase();
                 }
-                updateStartButtonText();
+
+                refreshUi();
             }
         }.start();
+    }
 
-        isRunning = true;
-        updateStartButtonText();
-        updatePhaseText();
+    private void stopLocalTicker() {
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+            countDownTimer = null;
+        }
     }
 
     private void showBreakStartDialog() {
         if (!isAdded()) {
             return;
         }
+
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.focus_work_finished_title)
                 .setMessage(getString(R.string.focus_start_break_confirm, breakDurationMin))
-                .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
-                    switchToWorkMode();
-                    updateStartButtonText();
-                })
+                .setNegativeButton(android.R.string.cancel, (dialog, which) -> switchToWorkPhase())
                 .setPositiveButton(R.string.focus_start_break_action, (dialog, which) -> {
                     activePhase = PHASE_BREAK;
-                    timeLeftMillis = minutesToMillis(breakDurationMin);
-                    startTimer(PHASE_BREAK, false);
+                    timeLeftMillis = phaseDurationMillis(PHASE_BREAK);
+                    startCurrentPhase();
                 })
                 .show();
     }
 
-    private void switchToWorkMode() {
+    private void switchToWorkPhase() {
         activePhase = PHASE_WORK;
-        timeLeftMillis = minutesToMillis(selectedDurationMin);
+        timeLeftMillis = phaseDurationMillis(PHASE_WORK);
+        currentSessionStart = "";
+    }
+
+    private void loadStateAndRefresh() {
+        if (!isAdded()) {
+            return;
+        }
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        workDurationMin = safeMinutes(prefs.getInt(KEY_WORK_MIN, 25));
+        breakDurationMin = safeMinutes(prefs.getInt(KEY_BREAK_MIN, 5));
+        longBreakDurationMin = safeMinutes(prefs.getInt(KEY_LONG_BREAK_MIN, 15));
+
+        selectedTaskId = prefs.getInt(KEY_SELECTED_TASK_ID, -1);
+        selectedTaskName = prefs.getString(KEY_SELECTED_TASK_NAME, "");
+
+        activePhase = prefs.getString(KEY_PHASE, PHASE_WORK);
+        if (!PHASE_BREAK.equals(activePhase)) {
+            activePhase = PHASE_WORK;
+        }
+
+        phaseEndAtMillis = prefs.getLong(FocusTimerReceiver.KEY_END_AT_MS, 0L);
+        boolean storedRunning = prefs.getBoolean(FocusTimerReceiver.KEY_RUNNING, false);
+        currentSessionStart = prefs.getString(FocusTimerReceiver.KEY_SESSION_START_TIME, "");
+
+        long defaultLeft = phaseDurationMillis(activePhase);
+        long savedLeft = prefs.getLong("timer_left_ms", defaultLeft);
+
+        if (storedRunning && phaseEndAtMillis > System.currentTimeMillis()) {
+            timeLeftMillis = phaseEndAtMillis - System.currentTimeMillis();
+            isRunning = true;
+            startLocalTicker(timeLeftMillis);
+        } else {
+            isRunning = false;
+            timeLeftMillis = (savedLeft > 0 && savedLeft <= defaultLeft) ? savedLeft : defaultLeft;
+            stopLocalTicker();
+        }
+
+        refreshUi();
+    }
+
+    private void persistUiState() {
+        if (!isAdded()) {
+            return;
+        }
+
+        if (isRunning && phaseEndAtMillis > 0L) {
+            timeLeftMillis = Math.max(0L, phaseEndAtMillis - System.currentTimeMillis());
+        }
+
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putLong("timer_left_ms", timeLeftMillis)
+                .putBoolean("timer_running", isRunning)
+                .putInt(KEY_SELECTED_TASK_ID, selectedTaskId)
+                .putString(KEY_SELECTED_TASK_NAME, selectedTaskName)
+                .putString(KEY_PHASE, activePhase)
+                .putLong(FocusTimerReceiver.KEY_END_AT_MS, phaseEndAtMillis)
+                .putBoolean(FocusTimerReceiver.KEY_RUNNING, isRunning)
+                .putString(FocusTimerReceiver.KEY_SESSION_START_TIME, currentSessionStart)
+                .apply();
+    }
+
+    private void refreshUi() {
+        timerSettingsInfoText.setText(getString(
+                R.string.focus_timer_settings_info,
+                workDurationMin,
+                breakDurationMin,
+                longBreakDurationMin
+        ));
+
+        timerPhaseText.setText(PHASE_BREAK.equals(activePhase)
+                ? R.string.focus_phase_break
+                : R.string.focus_phase_work);
+
+        updateSelectedTaskText();
+        updateSessionStats();
         updateTimerText();
         updateTimerProgress();
-        updatePhaseText();
-    }
 
-    private void pauseTimer() {
-        if (countDownTimer != null && isRunning) {
-            countDownTimer.cancel();
-            isRunning = false;
-            if (isAdded()) {
-                FocusTimerReceiver.cancelPhase(requireContext());
-            }
-            updateStartButtonText();
+        if (isRunning) {
+            startButton.setText(R.string.start_running);
+            startButton.setEnabled(false);
+            pauseButton.setEnabled(true);
+        } else if (timeLeftMillis < phaseDurationMillis(activePhase)) {
+            startButton.setText(R.string.start_resume);
+            startButton.setEnabled(true);
+            pauseButton.setEnabled(false);
+        } else {
+            startButton.setText(PHASE_BREAK.equals(activePhase)
+                    ? R.string.focus_start_break_action
+                    : R.string.start);
+            startButton.setEnabled(true);
+            pauseButton.setEnabled(false);
         }
-    }
-
-    private void resetTimer() {
-        if (countDownTimer != null) {
-            countDownTimer.cancel();
-        }
-        if (isAdded()) {
-            FocusTimerReceiver.cancelPhase(requireContext());
-        }
-        switchToWorkMode();
-        isRunning = false;
-        selectedTaskId = -1;
-        selectedTaskName = "";
-        updateSelectedTaskText();
-        updateStartButtonText();
-    }
-
-    private void updateTimerText() {
-        int minutes = (int) (timeLeftMillis / 1000) / 60;
-        int seconds = (int) (timeLeftMillis / 1000) % 60;
-        timerText.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
-    }
-
-    private void updateTimerProgress() {
-        long totalMillis = getPhaseDurationMillis(activePhase);
-        int progress = totalMillis == 0 ? 0 : (int) ((totalMillis - timeLeftMillis) * 100 / totalMillis);
-        timerProgress.setProgressCompat(progress, true);
-    }
-
-    private void updateSessionStats() {
-        int count = databaseHelper.getTodayPomodoroCount(databaseHelper.getTodayDate());
-        sessionsTodayText.setText(getString(R.string.focus_sessions_today, count));
     }
 
     private void updateSelectedTaskText() {
@@ -358,50 +384,42 @@ public class FocusFragment extends Fragment {
         }
     }
 
-    private void updateStartButtonText() {
-        if (isRunning) {
-            startButton.setText(R.string.start_running);
-            startButton.setEnabled(false);
-            pauseButton.setEnabled(true);
-        } else if (timeLeftMillis < getPhaseDurationMillis(activePhase)) {
-            startButton.setText(R.string.start_resume);
-            startButton.setEnabled(true);
-            pauseButton.setEnabled(false);
-        } else {
-            startButton.setText(PHASE_BREAK.equals(activePhase) ? R.string.focus_start_break_action : R.string.start);
-            startButton.setEnabled(true);
-            pauseButton.setEnabled(false);
-        }
+    private void updateSessionStats() {
+        int count = databaseHelper.getTodayPomodoroCount(databaseHelper.getTodayDate());
+        sessionsTodayText.setText(getString(R.string.focus_sessions_today, count));
     }
 
-    private void updatePhaseText() {
-        timerPhaseText.setText(PHASE_BREAK.equals(activePhase) ? R.string.focus_phase_break : R.string.focus_phase_work);
+    private void updateTimerText() {
+        int minutes = (int) (timeLeftMillis / 1000) / 60;
+        int seconds = (int) (timeLeftMillis / 1000) % 60;
+        timerText.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
     }
 
-    private long getPhaseDurationMillis(String phase) {
-        return PHASE_BREAK.equals(phase) ? minutesToMillis(breakDurationMin) : minutesToMillis(selectedDurationMin);
+    private void updateTimerProgress() {
+        long totalMillis = phaseDurationMillis(activePhase);
+        int progress = totalMillis == 0 ? 0 : (int) ((totalMillis - timeLeftMillis) * 100 / totalMillis);
+        timerProgress.setProgressCompat(progress, true);
     }
 
-    private long minutesToMillis(int minutes) {
-        return sanitizeMinutes(minutes) * 60L * 1000L;
+    private void setupHelpCard(View helpCard, TextView hideHelpButton) {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        boolean hidden = prefs.getBoolean(KEY_FOCUS_HELP_HIDDEN, false);
+        helpCard.setVisibility(hidden ? View.GONE : View.VISIBLE);
+        hideHelpButton.setOnClickListener(v -> {
+            helpCard.setVisibility(View.GONE);
+            prefs.edit().putBoolean(KEY_FOCUS_HELP_HIDDEN, true).apply();
+        });
     }
 
-    private int sanitizeMinutes(int minutes) {
+    private long phaseDurationMillis(String phase) {
+        return (PHASE_BREAK.equals(phase) ? breakDurationMin : workDurationMin) * 60_000L;
+    }
+
+    private int safeMinutes(int minutes) {
         return Math.max(1, minutes);
     }
 
-    @Override
-    public void onPause() {
-        super.onPause();
-        persistRuntimeState();
-    }
-
-    @Override
-    public void onDestroyView() {
-        persistRuntimeState();
-        if (countDownTimer != null) {
-            countDownTimer.cancel();
-        }
-        super.onDestroyView();
+    private String nowSqlDateTime() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
     }
 }

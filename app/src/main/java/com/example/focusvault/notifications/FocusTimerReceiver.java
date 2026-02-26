@@ -11,8 +11,9 @@ import android.os.Build;
 import com.example.focusvault.R;
 import com.example.focusvault.data.DatabaseHelper;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class FocusTimerReceiver extends BroadcastReceiver {
 
@@ -125,11 +126,11 @@ public class FocusTimerReceiver extends BroadcastReceiver {
         }
     }
 
-    public static void markWorkSessionStarted(Context context, int taskId) {
+    public static void markWorkSessionStarted(Context context, int taskId, String sessionStart) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit()
                 .putInt(KEY_SELECTED_TASK_ID, taskId)
-                .putString(KEY_SESSION_START_TIME, LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .putString(KEY_SESSION_START_TIME, sessionStart == null ? nowSqlDateTime() : sessionStart)
                 .putBoolean(KEY_WORK_RECORDED, false)
                 .apply();
     }
@@ -148,7 +149,7 @@ public class FocusTimerReceiver extends BroadcastReceiver {
 
         String startTime = prefs.getString(KEY_SESSION_START_TIME, null);
         if (startTime == null || startTime.isEmpty()) {
-            startTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            startTime = nowSqlDateTime();
         }
 
         int taskId = prefs.getInt(KEY_SELECTED_TASK_ID, -1);
@@ -187,5 +188,9 @@ public class FocusTimerReceiver extends BroadcastReceiver {
 
     private static int sanitizeMinutes(int minutes) {
         return Math.max(1, minutes);
+    }
+
+    private static String nowSqlDateTime() {
+        return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
     }
 }
