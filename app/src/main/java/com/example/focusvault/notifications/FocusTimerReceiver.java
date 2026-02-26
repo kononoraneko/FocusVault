@@ -39,6 +39,7 @@ public class FocusTimerReceiver extends BroadcastReceiver {
     public static final String KEY_SESSION_START_TIME = "focus_session_start_time";
     public static final String KEY_WORK_RECORDED = "focus_work_recorded";
     public static final String KEY_TIMER_LEFT_MS = "timer_left_ms";
+    public static final String KEY_ACTIVE_BREAK_MIN = "focus_active_break_min";
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -52,6 +53,7 @@ public class FocusTimerReceiver extends BroadcastReceiver {
         if (ACTION_START_SHORT_BREAK.equals(action)) {
             SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             int breakMinutes = sanitizeMinutes(prefs.getInt(KEY_BREAK_MIN, 5));
+            prefs.edit().putInt(KEY_ACTIVE_BREAK_MIN, breakMinutes).apply();
             startPhase(context, PHASE_BREAK, breakMinutes);
             ReminderReceiver.showCustomNotification(
                     context,
@@ -65,6 +67,7 @@ public class FocusTimerReceiver extends BroadcastReceiver {
         if (ACTION_START_LONG_BREAK.equals(action)) {
             SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
             int breakMinutes = sanitizeMinutes(prefs.getInt(KEY_LONG_BREAK_MIN, 15));
+            prefs.edit().putInt(KEY_ACTIVE_BREAK_MIN, breakMinutes).apply();
             startPhase(context, PHASE_BREAK, breakMinutes);
             ReminderReceiver.showCustomNotification(
                     context,

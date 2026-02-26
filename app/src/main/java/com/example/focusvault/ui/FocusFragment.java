@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.view.LayoutInflater;
@@ -69,6 +70,17 @@ public class FocusFragment extends Fragment {
     private String selectedTaskName = "";
     private String currentSessionStart = "";
 
+    private SharedPreferences prefs;
+    private final OnSharedPreferenceChangeListener timerPrefsListener = (sharedPreferences, key) -> {
+        if (FocusTimerReceiver.KEY_RUNNING.equals(key)
+                || FocusTimerReceiver.KEY_END_AT_MS.equals(key)
+                || FocusTimerReceiver.KEY_TIMER_LEFT_MS.equals(key)
+                || KEY_PHASE.equals(key)
+                || KEY_ACTIVE_BREAK_MIN.equals(key)) {
+            syncTimerStateFromPrefs();
+        }
+    };
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -76,6 +88,7 @@ public class FocusFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_focus, container, false);
 
         databaseHelper = new DatabaseHelper(requireContext());
+        prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         timerText = view.findViewById(R.id.text_timer);
         selectedTaskText = view.findViewById(R.id.text_selected_task);
         sessionsTodayText = view.findViewById(R.id.text_focus_sessions_today);
@@ -94,15 +107,33 @@ public class FocusFragment extends Fragment {
         pauseButton.setOnClickListener(v -> pauseTimer());
         resetButton.setOnClickListener(v -> resetTimer());
 
-        loadStateAndRefresh();
+        syncTimerStateFromPrefs();
         FocusTimerReceiver.refreshTimerNotification(requireContext());
         return view;
+    }
+
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (prefs != null) {
+            prefs.registerOnSharedPreferenceChangeListener(timerPrefsListener);
+        }
+        syncTimerStateFromPrefs();
+    }
+
+    @Override
+    public void onStop() {
+        if (prefs != null) {
+            prefs.unregisterOnSharedPreferenceChangeListener(timerPrefsListener);
+        }
+        super.onStop();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        loadStateAndRefresh();
+        syncTimerStateFromPrefs();
         FocusTimerReceiver.refreshTimerNotification(requireContext());
     }
 
@@ -198,7 +229,7 @@ public class FocusFragment extends Fragment {
             FocusTimerReceiver.pausePhase(requireContext());
         }
 
-        refreshUi();
+        syncTimerStateFromPrefs();
     }
 
     private void resetTimer() {
@@ -216,7 +247,7 @@ public class FocusFragment extends Fragment {
             FocusTimerReceiver.cancelPhase(requireContext());
         }
 
-        refreshUi();
+        syncTimerStateFromPrefs();
     }
 
     private void startLocalTicker(long durationMillis) {
@@ -289,10 +320,20 @@ public class FocusFragment extends Fragment {
     }
 
     private void startBreakWithDuration(int breakMinutes) {
+        if (!isAdded()) {
+            return;
+        }
+
         activePhase = PHASE_BREAK;
         activeBreakDurationMin = safeMinutes(breakMinutes);
+        prefs.edit().putInt(KEY_ACTIVE_BREAK_MIN, activeBreakDurationMin).apply();
         timeLeftMillis = activeBreakDurationMin * 60_000L;
-        startCurrentPhase();
+        phaseEndAtMillis = System.currentTimeMillis() + timeLeftMillis;
+        FocusTimerReceiver.startPhaseAt(requireContext(), PHASE_BREAK, phaseEndAtMillis);
+        stopLocalTicker();
+        startLocalTicker(timeLeftMillis);
+        isRunning = true;
+        refreshUi();
     }
 
     private void switchToWorkPhase() {
@@ -302,49 +343,52 @@ public class FocusFragment extends Fragment {
         currentSessionStart = "";
     }
 
-    private void loadStateAndRefresh() {
+
+    private void syncTimerStateFromPrefs() {
         if (!isAdded()) {
             return;
         }
 
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (prefs == null) {
+            prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        }
+
         workDurationMin = safeMinutes(prefs.getInt(KEY_WORK_MIN, 25));
         breakDurationMin = safeMinutes(prefs.getInt(KEY_BREAK_MIN, 5));
         longBreakDurationMin = safeMinutes(prefs.getInt(KEY_LONG_BREAK_MIN, 15));
-
         selectedTaskId = prefs.getInt(KEY_SELECTED_TASK_ID, -1);
         selectedTaskName = prefs.getString(KEY_SELECTED_TASK_NAME, "");
-
-        activePhase = prefs.getString(KEY_PHASE, PHASE_WORK);
-        if (!PHASE_BREAK.equals(activePhase)) {
-            activePhase = PHASE_WORK;
-        }
-
-        phaseEndAtMillis = prefs.getLong(FocusTimerReceiver.KEY_END_AT_MS, 0L);
-        boolean storedRunning = prefs.getBoolean(FocusTimerReceiver.KEY_RUNNING, false);
         currentSessionStart = prefs.getString(FocusTimerReceiver.KEY_SESSION_START_TIME, "");
 
+        String phase = prefs.getString(KEY_PHASE, PHASE_WORK);
+        if (!PHASE_BREAK.equals(phase)) {
+            phase = PHASE_WORK;
+        }
+
+        activePhase = phase;
         activeBreakDurationMin = safeMinutes(prefs.getInt(KEY_ACTIVE_BREAK_MIN, breakDurationMin));
 
+        long storedEndAt = prefs.getLong(FocusTimerReceiver.KEY_END_AT_MS, 0L);
+        boolean storedRunning = prefs.getBoolean(FocusTimerReceiver.KEY_RUNNING, false);
         long defaultLeft = phaseDurationMillis(activePhase);
         long savedLeft = prefs.getLong(FocusTimerReceiver.KEY_TIMER_LEFT_MS, defaultLeft);
 
-        if (storedRunning && phaseEndAtMillis > System.currentTimeMillis()) {
-            timeLeftMillis = Math.max(0L, phaseEndAtMillis - System.currentTimeMillis());
+        if (storedRunning && storedEndAt > System.currentTimeMillis()) {
+            long newLeft = Math.max(0L, storedEndAt - System.currentTimeMillis());
+            boolean shouldRestartTicker = !isRunning || Math.abs(newLeft - timeLeftMillis) > 1200L;
+            phaseEndAtMillis = storedEndAt;
+            timeLeftMillis = newLeft;
             isRunning = true;
-            startLocalTicker(timeLeftMillis);
-        } else if (storedRunning && phaseEndAtMillis > 0L) {
-            isRunning = false;
-            timeLeftMillis = 0L;
-            stopLocalTicker();
-            Intent finishIntent = new Intent(requireContext(), FocusTimerReceiver.class);
-            finishIntent.setAction(FocusTimerReceiver.ACTION_TIMER_FINISH);
-            finishIntent.putExtra(FocusTimerReceiver.EXTRA_PHASE, activePhase);
-            requireContext().sendBroadcast(finishIntent);
+            if (shouldRestartTicker) {
+                startLocalTicker(timeLeftMillis);
+            }
         } else {
+            if (isRunning) {
+                stopLocalTicker();
+            }
             isRunning = false;
-            timeLeftMillis = (savedLeft >= 0 && savedLeft <= defaultLeft) ? savedLeft : defaultLeft;
-            stopLocalTicker();
+            phaseEndAtMillis = 0L;
+            timeLeftMillis = Math.max(0L, Math.min(savedLeft, defaultLeft));
         }
 
         refreshUi();
@@ -359,7 +403,9 @@ public class FocusFragment extends Fragment {
             timeLeftMillis = Math.max(0L, phaseEndAtMillis - System.currentTimeMillis());
         }
 
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (prefs == null) {
+            prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        }
         prefs.edit()
                 .putLong(FocusTimerReceiver.KEY_TIMER_LEFT_MS, Math.max(0L, timeLeftMillis))
                 .putInt(KEY_ACTIVE_BREAK_MIN, activeBreakDurationMin)
@@ -398,9 +444,7 @@ public class FocusFragment extends Fragment {
             startButton.setEnabled(true);
             pauseButton.setEnabled(false);
         } else {
-            startButton.setText(PHASE_BREAK.equals(activePhase)
-                    ? R.string.focus_start_break_action
-                    : R.string.start);
+            startButton.setText(R.string.start);
             startButton.setEnabled(true);
             pauseButton.setEnabled(false);
         }
@@ -434,7 +478,9 @@ public class FocusFragment extends Fragment {
     }
 
     private void setupHelpCard(View helpCard, TextView hideHelpButton) {
-        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        if (prefs == null) {
+            prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        }
         boolean hidden = prefs.getBoolean(KEY_FOCUS_HELP_HIDDEN, false);
         helpCard.setVisibility(hidden ? View.GONE : View.VISIBLE);
         hideHelpButton.setOnClickListener(v -> {
