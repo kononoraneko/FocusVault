@@ -1,16 +1,7 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
     <style name="Base.Theme.FocusVault" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/md_dark_primary</item>
-        <item name="colorOnPrimary">@color/md_dark_onPrimary</item>
-        <item name="colorPrimaryContainer">@color/md_dark_primaryContainer</item>
-        <item name="colorOnPrimaryContainer">@color/md_dark_onPrimaryContainer</item>
-        <item name="colorSecondary">@color/md_dark_secondary</item>
-        <item name="colorOnSecondary">@color/md_dark_onSecondary</item>
-        <item name="android:colorBackground">@color/md_dark_background</item>
-        <item name="colorOnBackground">@color/md_dark_onBackground</item>
-        <item name="colorSurface">@color/md_dark_surface</item>
-        <item name="colorOnSurface">@color/md_dark_onSurface</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <!-- Customize your dark theme here. -->
+        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
     </style>
 </resources>

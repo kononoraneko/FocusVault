@@ -1,32 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="seed_primary">#4F46E5</color>
-    <color name="seed_secondary">#14B8A6</color>
-    <color name="seed_tertiary">#F59E0B</color>
-
-    <color name="md_light_primary">#4A43D2</color>
-    <color name="md_light_onPrimary">#FFFFFF</color>
-    <color name="md_light_primaryContainer">#E3DFFF</color>
-    <color name="md_light_onPrimaryContainer">#13006A</color>
-    <color name="md_light_secondary">#006B62</color>
-    <color name="md_light_onSecondary">#FFFFFF</color>
-    <color name="md_light_background">#FCF8FF</color>
-    <color name="md_light_onBackground">#1C1B21</color>
-    <color name="md_light_surface">#FCF8FF</color>
-    <color name="md_light_onSurface">#1C1B21</color>
-
-    <color name="md_dark_primary">#C4C0FF</color>
-    <color name="md_dark_onPrimary">#1E0F8A</color>
-    <color name="md_dark_primaryContainer">#3526B8</color>
-    <color name="md_dark_onPrimaryContainer">#E3DFFF</color>
-    <color name="md_dark_secondary">#76D5C8</color>
-    <color name="md_dark_onSecondary">#003731</color>
-    <color name="md_dark_background">#14131A</color>
-    <color name="md_dark_onBackground">#E5E1EA</color>
-    <color name="md_dark_surface">#14131A</color>
-    <color name="md_dark_onSurface">#E5E1EA</color>
-
-    <color name="priority_high">#EF4444</color>
-    <color name="priority_mid">#F59E0B</color>
-    <color name="priority_low">#22C55E</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
 </resources>

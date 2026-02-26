@@ -16,8 +16,6 @@ import androidx.fragment.app.Fragment;
 import com.example.focusvault.R;
 import com.example.focusvault.data.DatabaseHelper;
 import com.example.focusvault.model.Task;
-import com.google.android.material.chip.Chip;
-import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,14 +24,6 @@ import java.util.Locale;
 
 public class FocusFragment extends Fragment {
 
-    private static final int DEFAULT_DURATION_MIN = 25;
-
-    private TextView timerText;
-    private TextView sessionsTodayText;
-    private CircularProgressIndicator timerProgress;
-    private CountDownTimer countDownTimer;
-    private long timeLeftMillis;
-    private int selectedDurationMin = DEFAULT_DURATION_MIN;
     private static final long DEFAULT_DURATION_MS = 25 * 60 * 1000;
 
     private TextView timerText;
@@ -52,32 +42,6 @@ public class FocusFragment extends Fragment {
 
         databaseHelper = new DatabaseHelper(requireContext());
         timerText = view.findViewById(R.id.text_timer);
-        sessionsTodayText = view.findViewById(R.id.text_focus_sessions_today);
-        timerProgress = view.findViewById(R.id.progress_timer);
-        Button startButton = view.findViewById(R.id.button_start);
-        Button pauseButton = view.findViewById(R.id.button_pause);
-        Button resetButton = view.findViewById(R.id.button_reset);
-        Chip chip25 = view.findViewById(R.id.chip_25);
-        Chip chip50 = view.findViewById(R.id.chip_50);
-
-        timeLeftMillis = minutesToMillis(selectedDurationMin);
-
-        chip25.setOnClickListener(v -> {
-            if (!isRunning) {
-                selectedDurationMin = 25;
-                resetTimer();
-            }
-        });
-        chip50.setOnClickListener(v -> {
-            if (!isRunning) {
-                selectedDurationMin = 50;
-                resetTimer();
-            }
-        });
-
-        updateTimerText();
-        updateTimerProgress();
-        updateSessionStats();
         Button startButton = view.findViewById(R.id.button_start);
         Button pauseButton = view.findViewById(R.id.button_pause);
         Button resetButton = view.findViewById(R.id.button_reset);
@@ -98,12 +62,6 @@ public class FocusFragment extends Fragment {
         resetButton.setOnClickListener(v -> resetTimer());
 
         return view;
-    }
-
-    @Override
-    public void onResume() {
-        super.onResume();
-        updateSessionStats();
     }
 
     private void showTaskSelectionAndStart() {
@@ -137,7 +95,6 @@ public class FocusFragment extends Fragment {
             public void onTick(long millisUntilFinished) {
                 timeLeftMillis = millisUntilFinished;
                 updateTimerText();
-                updateTimerProgress();
             }
 
             @Override
@@ -145,9 +102,6 @@ public class FocusFragment extends Fragment {
                 isRunning = false;
                 timeLeftMillis = 0;
                 updateTimerText();
-                updateTimerProgress();
-                databaseHelper.insertPomodoroSession(sessionStartTime, selectedDurationMin, selectedTaskId);
-                updateSessionStats();
                 databaseHelper.insertPomodoroSession(sessionStartTime, 25, selectedTaskId);
                 new AlertDialog.Builder(requireContext())
                         .setMessage(R.string.pomodoro_completed)
@@ -170,11 +124,6 @@ public class FocusFragment extends Fragment {
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
-        timeLeftMillis = minutesToMillis(selectedDurationMin);
-        isRunning = false;
-        selectedTaskId = -1;
-        updateTimerText();
-        updateTimerProgress();
         timeLeftMillis = DEFAULT_DURATION_MS;
         isRunning = false;
         selectedTaskId = -1;
@@ -185,21 +134,6 @@ public class FocusFragment extends Fragment {
         int minutes = (int) (timeLeftMillis / 1000) / 60;
         int seconds = (int) (timeLeftMillis / 1000) % 60;
         timerText.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
-    }
-
-    private void updateTimerProgress() {
-        long totalMillis = minutesToMillis(selectedDurationMin);
-        int progress = totalMillis == 0 ? 0 : (int) ((totalMillis - timeLeftMillis) * 100 / totalMillis);
-        timerProgress.setProgressCompat(progress, true);
-    }
-
-    private void updateSessionStats() {
-        int count = databaseHelper.getTodayPomodoroCount(databaseHelper.getTodayDate());
-        sessionsTodayText.setText(getString(R.string.focus_sessions_today, count));
-    }
-
-    private long minutesToMillis(int minutes) {
-        return minutes * 60L * 1000L;
     }
 
     @Override
