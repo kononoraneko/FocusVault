@@ -74,6 +74,10 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         return tasks.size();
     }
 
+    public List<Task> getTasks() {
+        return tasks;
+    }
+
     static class TaskViewHolder extends RecyclerView.ViewHolder {
         CheckBox checkBox;
         TextView title;

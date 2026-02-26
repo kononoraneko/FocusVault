@@ -34,6 +34,11 @@ public class FocusFragment extends Fragment {
     private CountDownTimer countDownTimer;
     private long timeLeftMillis;
     private int selectedDurationMin = DEFAULT_DURATION_MIN;
+    private static final long DEFAULT_DURATION_MS = 25 * 60 * 1000;
+
+    private TextView timerText;
+    private CountDownTimer countDownTimer;
+    private long timeLeftMillis = DEFAULT_DURATION_MS;
     private boolean isRunning = false;
     private int selectedTaskId = -1;
     private String sessionStartTime;
@@ -73,6 +78,11 @@ public class FocusFragment extends Fragment {
         updateTimerText();
         updateTimerProgress();
         updateSessionStats();
+        Button startButton = view.findViewById(R.id.button_start);
+        Button pauseButton = view.findViewById(R.id.button_pause);
+        Button resetButton = view.findViewById(R.id.button_reset);
+
+        updateTimerText();
 
         startButton.setOnClickListener(v -> {
             if (!isRunning) {
@@ -138,6 +148,7 @@ public class FocusFragment extends Fragment {
                 updateTimerProgress();
                 databaseHelper.insertPomodoroSession(sessionStartTime, selectedDurationMin, selectedTaskId);
                 updateSessionStats();
+                databaseHelper.insertPomodoroSession(sessionStartTime, 25, selectedTaskId);
                 new AlertDialog.Builder(requireContext())
                         .setMessage(R.string.pomodoro_completed)
                         .setPositiveButton(android.R.string.ok, null)
@@ -164,6 +175,10 @@ public class FocusFragment extends Fragment {
         selectedTaskId = -1;
         updateTimerText();
         updateTimerProgress();
+        timeLeftMillis = DEFAULT_DURATION_MS;
+        isRunning = false;
+        selectedTaskId = -1;
+        updateTimerText();
     }
 
     private void updateTimerText() {

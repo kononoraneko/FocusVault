@@ -51,6 +51,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         holder.title.setText(note.getTitle());
         holder.content.setText(note.getContent());
         holder.date.setText(formatDate(note.getCreatedAt()));
+        holder.date.setText(note.getCreatedAt());
         holder.editButton.setOnClickListener(v -> listener.onEdit(note));
         holder.deleteButton.setOnClickListener(v -> listener.onDelete(note));
     }

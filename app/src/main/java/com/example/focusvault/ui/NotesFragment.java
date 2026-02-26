@@ -143,5 +143,6 @@ public class NotesFragment extends Fragment {
 
         noteAdapter.setNotes(filtered);
         emptyText.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
+        noteAdapter.setNotes(databaseHelper.getAllNotes());
     }
 }

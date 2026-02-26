@@ -25,6 +25,8 @@ import com.google.android.material.progressindicator.LinearProgressIndicator;
 
 import java.util.List;
 import java.util.Locale;
+import com.example.focusvault.ui.adapter.TaskAdapter;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 public class TodayFragment extends Fragment {
 
@@ -144,5 +146,10 @@ public class TodayFragment extends Fragment {
             doneBar.setLayoutParams(doneParams);
             pendingBar.setLayoutParams(pendingParams);
         }
+        taskAdapter.setTasks(databaseHelper.getTasksByDate(date));
+        int pomodoroCount = databaseHelper.getTodayPomodoroCount(date);
+        int completedCount = databaseHelper.getTodayCompletedTasksCount(date);
+        pomodoroCountText.setText(getString(R.string.today_pomodoro_count, pomodoroCount));
+        completedTasksText.setText(getString(R.string.today_completed_count, completedCount));
     }
 }

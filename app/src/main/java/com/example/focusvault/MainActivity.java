@@ -36,6 +36,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (savedInstanceState == null) {
             bottomNavigationView.setSelectedItemId(R.id.nav_today);
+            loadFragment(new TodayFragment());
         }
     }
 

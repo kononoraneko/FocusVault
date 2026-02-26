@@ -11,6 +11,7 @@
     <string name="cancel">Отмена</string>
     <string name="hint_task_title">Название задачи</string>
     <string name="hint_task_priority">Приоритет (1-10)</string>
+    <string name="hint_task_priority">Приоритет (число)</string>
     <string name="hint_note_title">Заголовок заметки</string>
     <string name="hint_note_content">Содержимое заметки</string>
     <string name="today_pomodoro_count">Помидоров сегодня: %1$d</string>
