@@ -18,7 +18,8 @@ import java.util.Locale;
 public class FocusTimerReceiver extends BroadcastReceiver {
 
     public static final String ACTION_TIMER_FINISH = "com.example.focusvault.action.TIMER_FINISH";
-    public static final String ACTION_START_BREAK = "com.example.focusvault.action.START_BREAK";
+    public static final String ACTION_START_SHORT_BREAK = "com.example.focusvault.action.START_SHORT_BREAK";
+    public static final String ACTION_START_LONG_BREAK = "com.example.focusvault.action.START_LONG_BREAK";
     public static final String ACTION_TIMER_PAUSE = "com.example.focusvault.action.TIMER_PAUSE";
     public static final String ACTION_TIMER_RESUME = "com.example.focusvault.action.TIMER_RESUME";
     public static final String ACTION_TIMER_STOP = "com.example.focusvault.action.TIMER_STOP";
@@ -32,6 +33,7 @@ public class FocusTimerReceiver extends BroadcastReceiver {
     public static final String KEY_END_AT_MS = "focus_end_at_ms";
     public static final String KEY_RUNNING = "focus_running";
     public static final String KEY_BREAK_MIN = "break_minutes";
+    public static final String KEY_LONG_BREAK_MIN = "long_break_minutes";
     public static final String KEY_WORK_MIN = "work_minutes";
     public static final String KEY_SELECTED_TASK_ID = "selected_task_id";
     public static final String KEY_SESSION_START_TIME = "focus_session_start_time";
@@ -47,16 +49,28 @@ public class FocusTimerReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (ACTION_START_BREAK.equals(action)) {
-            int breakMinutes = sanitizeMinutes(
-                    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_BREAK_MIN, 5)
-            );
+        if (ACTION_START_SHORT_BREAK.equals(action)) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            int breakMinutes = sanitizeMinutes(prefs.getInt(KEY_BREAK_MIN, 5));
             startPhase(context, PHASE_BREAK, breakMinutes);
             ReminderReceiver.showCustomNotification(
                     context,
                     context.getString(R.string.focus_break_started_title),
                     context.getString(R.string.focus_break_started_text, breakMinutes),
                     4004
+            );
+            return;
+        }
+
+        if (ACTION_START_LONG_BREAK.equals(action)) {
+            SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+            int breakMinutes = sanitizeMinutes(prefs.getInt(KEY_LONG_BREAK_MIN, 15));
+            startPhase(context, PHASE_BREAK, breakMinutes);
+            ReminderReceiver.showCustomNotification(
+                    context,
+                    context.getString(R.string.focus_break_started_title),
+                    context.getString(R.string.focus_break_started_text, breakMinutes),
+                    4005
             );
             return;
         }
@@ -97,23 +111,37 @@ public class FocusTimerReceiver extends BroadcastReceiver {
         }
 
         recordCompletedWorkSession(context, prefs);
+        showWorkFinishedNotification(context);
+    }
 
-        Intent startBreakIntent = new Intent(context, FocusTimerReceiver.class);
-        startBreakIntent.setAction(ACTION_START_BREAK);
-        PendingIntent startBreakPendingIntent = PendingIntent.getBroadcast(
+    public static void showWorkFinishedNotification(Context context) {
+        Intent shortBreakIntent = new Intent(context, FocusTimerReceiver.class);
+        shortBreakIntent.setAction(ACTION_START_SHORT_BREAK);
+        PendingIntent shortBreakPendingIntent = PendingIntent.getBroadcast(
                 context,
                 5002,
-                startBreakIntent,
+                shortBreakIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        ReminderReceiver.showActionNotification(
+        Intent longBreakIntent = new Intent(context, FocusTimerReceiver.class);
+        longBreakIntent.setAction(ACTION_START_LONG_BREAK);
+        PendingIntent longBreakPendingIntent = PendingIntent.getBroadcast(
+                context,
+                5003,
+                longBreakIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        ReminderReceiver.showTwoActionNotification(
                 context,
                 context.getString(R.string.focus_work_finished_title),
                 context.getString(R.string.focus_work_finished_text),
                 4002,
-                context.getString(R.string.focus_start_break_action),
-                startBreakPendingIntent
+                context.getString(R.string.focus_start_short_break_action),
+                shortBreakPendingIntent,
+                context.getString(R.string.focus_start_long_break_action),
+                longBreakPendingIntent
         );
     }
 

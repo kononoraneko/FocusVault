@@ -2,6 +2,7 @@ package com.example.focusvault.ui;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -19,6 +20,7 @@ import com.example.focusvault.R;
 import com.example.focusvault.data.DatabaseHelper;
 import com.example.focusvault.model.Task;
 import com.example.focusvault.notifications.FocusTimerReceiver;
+import com.example.focusvault.notifications.ReminderReceiver;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
 import java.text.SimpleDateFormat;
@@ -36,6 +38,7 @@ public class FocusFragment extends Fragment {
     private static final String KEY_SELECTED_TASK_ID = "selected_task_id";
     private static final String KEY_SELECTED_TASK_NAME = "selected_task_name";
     private static final String KEY_PHASE = "focus_phase";
+    private static final String KEY_ACTIVE_BREAK_MIN = "focus_active_break_min";
 
     private static final String PHASE_WORK = "work";
     private static final String PHASE_BREAK = "break";
@@ -55,6 +58,7 @@ public class FocusFragment extends Fragment {
     private int workDurationMin = 25;
     private int breakDurationMin = 5;
     private int longBreakDurationMin = 15;
+    private int activeBreakDurationMin = 5;
 
     private String activePhase = PHASE_WORK;
     private long phaseEndAtMillis = 0L;
@@ -150,6 +154,7 @@ public class FocusFragment extends Fragment {
                     selectedTaskName = tasks.get(which).getTitle();
                     updateSelectedTaskText();
                     activePhase = PHASE_WORK;
+                    activeBreakDurationMin = breakDurationMin;
                     timeLeftMillis = phaseDurationMillis(PHASE_WORK);
                     startCurrentPhase();
                 })
@@ -201,6 +206,7 @@ public class FocusFragment extends Fragment {
         isRunning = false;
         phaseEndAtMillis = 0L;
         activePhase = PHASE_WORK;
+        activeBreakDurationMin = breakDurationMin;
         timeLeftMillis = phaseDurationMillis(PHASE_WORK);
         currentSessionStart = "";
         selectedTaskId = -1;
@@ -219,7 +225,7 @@ public class FocusFragment extends Fragment {
         countDownTimer = new CountDownTimer(durationMillis, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                timeLeftMillis = millisUntilFinished;
+                timeLeftMillis = Math.max(0L, millisUntilFinished);
                 refreshUi();
             }
 
@@ -242,10 +248,17 @@ public class FocusFragment extends Fragment {
                             workDurationMin,
                             selectedTaskId
                     );
+                    FocusTimerReceiver.showWorkFinishedNotification(requireContext());
                     currentSessionStart = "";
                     updateSessionStats();
                     showBreakStartDialog();
                 } else {
+                    ReminderReceiver.showCustomNotification(
+                            requireContext(),
+                            getString(R.string.focus_break_finished_title),
+                            getString(R.string.focus_break_finished_text),
+                            4003
+                    );
                     switchToWorkPhase();
                 }
 
@@ -268,18 +281,23 @@ public class FocusFragment extends Fragment {
 
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.focus_work_finished_title)
-                .setMessage(getString(R.string.focus_start_break_confirm, breakDurationMin))
+                .setMessage(getString(R.string.focus_start_break_type_confirm, breakDurationMin, longBreakDurationMin))
                 .setNegativeButton(android.R.string.cancel, (dialog, which) -> switchToWorkPhase())
-                .setPositiveButton(R.string.focus_start_break_action, (dialog, which) -> {
-                    activePhase = PHASE_BREAK;
-                    timeLeftMillis = phaseDurationMillis(PHASE_BREAK);
-                    startCurrentPhase();
-                })
+                .setPositiveButton(R.string.focus_start_short_break_action, (dialog, which) -> startBreakWithDuration(breakDurationMin))
+                .setNeutralButton(R.string.focus_start_long_break_action, (dialog, which) -> startBreakWithDuration(longBreakDurationMin))
                 .show();
+    }
+
+    private void startBreakWithDuration(int breakMinutes) {
+        activePhase = PHASE_BREAK;
+        activeBreakDurationMin = safeMinutes(breakMinutes);
+        timeLeftMillis = activeBreakDurationMin * 60_000L;
+        startCurrentPhase();
     }
 
     private void switchToWorkPhase() {
         activePhase = PHASE_WORK;
+        activeBreakDurationMin = breakDurationMin;
         timeLeftMillis = phaseDurationMillis(PHASE_WORK);
         currentSessionStart = "";
     }
@@ -306,16 +324,26 @@ public class FocusFragment extends Fragment {
         boolean storedRunning = prefs.getBoolean(FocusTimerReceiver.KEY_RUNNING, false);
         currentSessionStart = prefs.getString(FocusTimerReceiver.KEY_SESSION_START_TIME, "");
 
+        activeBreakDurationMin = safeMinutes(prefs.getInt(KEY_ACTIVE_BREAK_MIN, breakDurationMin));
+
         long defaultLeft = phaseDurationMillis(activePhase);
-        long savedLeft = prefs.getLong("timer_left_ms", defaultLeft);
+        long savedLeft = prefs.getLong(FocusTimerReceiver.KEY_TIMER_LEFT_MS, defaultLeft);
 
         if (storedRunning && phaseEndAtMillis > System.currentTimeMillis()) {
-            timeLeftMillis = phaseEndAtMillis - System.currentTimeMillis();
+            timeLeftMillis = Math.max(0L, phaseEndAtMillis - System.currentTimeMillis());
             isRunning = true;
             startLocalTicker(timeLeftMillis);
+        } else if (storedRunning && phaseEndAtMillis > 0L) {
+            isRunning = false;
+            timeLeftMillis = 0L;
+            stopLocalTicker();
+            Intent finishIntent = new Intent(requireContext(), FocusTimerReceiver.class);
+            finishIntent.setAction(FocusTimerReceiver.ACTION_TIMER_FINISH);
+            finishIntent.putExtra(FocusTimerReceiver.EXTRA_PHASE, activePhase);
+            requireContext().sendBroadcast(finishIntent);
         } else {
             isRunning = false;
-            timeLeftMillis = (savedLeft > 0 && savedLeft <= defaultLeft) ? savedLeft : defaultLeft;
+            timeLeftMillis = (savedLeft >= 0 && savedLeft <= defaultLeft) ? savedLeft : defaultLeft;
             stopLocalTicker();
         }
 
@@ -333,7 +361,8 @@ public class FocusFragment extends Fragment {
 
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit()
-                .putLong("timer_left_ms", timeLeftMillis)
+                .putLong(FocusTimerReceiver.KEY_TIMER_LEFT_MS, Math.max(0L, timeLeftMillis))
+                .putInt(KEY_ACTIVE_BREAK_MIN, activeBreakDurationMin)
                 .putInt(KEY_SELECTED_TASK_ID, selectedTaskId)
                 .putString(KEY_SELECTED_TASK_NAME, selectedTaskName)
                 .putString(KEY_PHASE, activePhase)
@@ -391,14 +420,16 @@ public class FocusFragment extends Fragment {
     }
 
     private void updateTimerText() {
-        int minutes = (int) (timeLeftMillis / 1000) / 60;
-        int seconds = (int) (timeLeftMillis / 1000) % 60;
+        long safeLeft = Math.max(0L, timeLeftMillis);
+        int minutes = (int) (safeLeft / 1000) / 60;
+        int seconds = (int) (safeLeft / 1000) % 60;
         timerText.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
     }
 
     private void updateTimerProgress() {
         long totalMillis = phaseDurationMillis(activePhase);
-        int progress = totalMillis == 0 ? 0 : (int) ((totalMillis - timeLeftMillis) * 100 / totalMillis);
+        int progress = totalMillis == 0 ? 0 : (int) ((totalMillis - Math.max(0L, timeLeftMillis)) * 100 / totalMillis);
+        progress = Math.max(0, Math.min(100, progress));
         timerProgress.setProgressCompat(progress, true);
     }
 
@@ -413,7 +444,7 @@ public class FocusFragment extends Fragment {
     }
 
     private long phaseDurationMillis(String phase) {
-        return (PHASE_BREAK.equals(phase) ? breakDurationMin : workDurationMin) * 60_000L;
+        return (PHASE_BREAK.equals(phase) ? activeBreakDurationMin : workDurationMin) * 60_000L;
     }
 
     private int safeMinutes(int minutes) {

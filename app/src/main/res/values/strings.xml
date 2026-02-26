@@ -54,9 +54,12 @@
     <string name="focus_phase_work">Сейчас: работа</string>
     <string name="focus_phase_break">Сейчас: перерыв</string>
     <string name="focus_work_finished_title">Рабочая сессия завершена</string>
-    <string name="focus_work_finished_text">Начать перерыв сейчас?</string>
+    <string name="focus_work_finished_text">Выберите короткий или длинный перерыв.</string>
     <string name="focus_start_break_action">Начать перерыв</string>
     <string name="focus_start_break_confirm">Сессия завершена. Начать перерыв на %1$d мин?</string>
+    <string name="focus_start_short_break_action">Короткий перерыв</string>
+    <string name="focus_start_long_break_action">Длинный перерыв</string>
+    <string name="focus_start_break_type_confirm">Выберите тип перерыва: короткий (%1$d мин) или длинный (%2$d мин).</string>
     <string name="focus_break_started_title">Перерыв начат</string>
     <string name="focus_break_started_text">Перерыв на %1$d мин уже запущен.</string>
     <string name="focus_break_finished_title">Перерыв завершен</string>

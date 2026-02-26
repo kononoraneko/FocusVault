@@ -80,6 +80,55 @@ public class ReminderReceiver extends BroadcastReceiver {
         NotificationManagerCompat.from(context).notify(id, builder.build());
     }
 
+
+    public static void showTwoActionNotification(
+            Context context,
+            String title,
+            String text,
+            int id,
+            String firstActionTitle,
+            PendingIntent firstActionIntent,
+            String secondActionTitle,
+            PendingIntent secondActionIntent
+    ) {
+        createNotificationChannel(context);
+
+        Intent openIntent = new Intent(context, MainActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                1002,
+                openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle(title)
+                .setContentText(text)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setContentIntent(pendingIntent)
+                .setVibrate(new long[]{0, 350, 200, 350})
+                .setAutoCancel(true);
+
+        if (firstActionTitle != null && firstActionIntent != null) {
+            builder.addAction(android.R.drawable.ic_media_play, firstActionTitle, firstActionIntent);
+        }
+
+        if (secondActionTitle != null && secondActionIntent != null) {
+            builder.addAction(android.R.drawable.ic_media_play, secondActionTitle, secondActionIntent);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+        }
+
+        NotificationManagerCompat.from(context).notify(id, builder.build());
+    }
+
     public static void showFocusTimerNotification(
             Context context,
             String phase,
