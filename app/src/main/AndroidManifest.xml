@@ -27,6 +27,10 @@
             android:name=".notifications.ReminderReceiver"
             android:exported="false" />
 
+        <receiver
+            android:name=".notifications.FocusTimerReceiver"
+            android:exported="false" />
+
     </application>
 
 </manifest>

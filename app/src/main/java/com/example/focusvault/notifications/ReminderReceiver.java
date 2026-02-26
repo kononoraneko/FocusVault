@@ -34,6 +34,17 @@ public class ReminderReceiver extends BroadcastReceiver {
     }
 
     public static void showCustomNotification(Context context, String title, String text, int id) {
+        showActionNotification(context, title, text, id, null, null);
+    }
+
+    public static void showActionNotification(
+            Context context,
+            String title,
+            String text,
+            int id,
+            String actionTitle,
+            PendingIntent actionIntent
+    ) {
         createNotificationChannel(context);
 
         Intent openIntent = new Intent(context, MainActivity.class);
@@ -51,7 +62,12 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
+                .setVibrate(new long[]{0, 350, 200, 350})
                 .setAutoCancel(true);
+
+        if (actionTitle != null && actionIntent != null) {
+            builder.addAction(0, actionTitle, actionIntent);
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
@@ -71,6 +87,8 @@ public class ReminderReceiver extends BroadcastReceiver {
                     NotificationManager.IMPORTANCE_DEFAULT
             );
             channel.setDescription(context.getString(R.string.reminder_channel_desc));
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{0, 350, 200, 350});
             NotificationManager manager = context.getSystemService(NotificationManager.class);
             if (manager != null) {
                 manager.createNotificationChannel(channel);
