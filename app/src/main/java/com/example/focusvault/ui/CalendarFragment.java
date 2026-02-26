@@ -4,7 +4,9 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.CalendarView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -49,6 +51,8 @@ public class CalendarFragment extends Fragment {
         tasksText = view.findViewById(R.id.text_stats_tasks);
         pomodoroText = view.findViewById(R.id.text_stats_pomodoro);
         notesText = view.findViewById(R.id.text_stats_notes);
+        Button toggleButton = view.findViewById(R.id.button_toggle_calendar);
+        LinearLayout calendarContainer = view.findViewById(R.id.calendar_container);
 
         adapter = new NoteAdapter(new NoteAdapter.NoteActionListener() {
             @Override
@@ -70,6 +74,16 @@ public class CalendarFragment extends Fragment {
             LocalDate date = LocalDate.of(year, month + 1, dayOfMonth);
             selectedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
             loadForDate(selectedDate);
+        });
+
+        toggleButton.setOnClickListener(v -> {
+            if (calendarContainer.getVisibility() == View.VISIBLE) {
+                calendarContainer.setVisibility(View.GONE);
+                toggleButton.setText(R.string.show_calendar);
+            } else {
+                calendarContainer.setVisibility(View.VISIBLE);
+                toggleButton.setText(R.string.hide_calendar);
+            }
         });
 
         return view;

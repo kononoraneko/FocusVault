@@ -32,6 +32,10 @@ public class FocusFragment extends Fragment {
     private static final String KEY_BREAK_MIN = "break_minutes";
     private static final String KEY_LONG_BREAK_MIN = "long_break_minutes";
     private static final String KEY_FOCUS_HELP_HIDDEN = "focus_help_hidden";
+    private static final String KEY_TIMER_LEFT_MS = "timer_left_ms";
+    private static final String KEY_TIMER_RUNNING = "timer_running";
+    private static final String KEY_SELECTED_TASK_ID = "selected_task_id";
+    private static final String KEY_SELECTED_TASK_NAME = "selected_task_name";
 
     private TextView timerText;
     private TextView sessionsTodayText;
@@ -71,7 +75,7 @@ public class FocusFragment extends Fragment {
         setupHelpCard(helpCard, hideHelpButton);
 
         loadTimerSettings();
-        timeLeftMillis = minutesToMillis(selectedDurationMin);
+        restoreRuntimeState();
 
         updateTimerText();
         updateTimerProgress();
@@ -99,9 +103,6 @@ public class FocusFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadTimerSettings();
-        if (!isRunning) {
-            timeLeftMillis = minutesToMillis(selectedDurationMin);
-        }
         updateSessionStats();
         updateSelectedTaskText();
         updateTimerText();
@@ -126,6 +127,34 @@ public class FocusFragment extends Fragment {
         breakDurationMin = prefs.getInt(KEY_BREAK_MIN, 5);
         longBreakDurationMin = prefs.getInt(KEY_LONG_BREAK_MIN, 15);
         timerSettingsInfoText.setText(getString(R.string.focus_timer_settings_info, selectedDurationMin, breakDurationMin, longBreakDurationMin));
+    }
+
+
+    private void restoreRuntimeState() {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        selectedTaskId = prefs.getInt(KEY_SELECTED_TASK_ID, -1);
+        selectedTaskName = prefs.getString(KEY_SELECTED_TASK_NAME, "");
+        long savedLeft = prefs.getLong(KEY_TIMER_LEFT_MS, -1L);
+        if (savedLeft > 0 && savedLeft <= minutesToMillis(selectedDurationMin)) {
+            timeLeftMillis = savedLeft;
+        } else {
+            timeLeftMillis = minutesToMillis(selectedDurationMin);
+        }
+
+        boolean wasRunning = prefs.getBoolean(KEY_TIMER_RUNNING, false);
+        if (wasRunning && selectedTaskId != -1 && timeLeftMillis > 0) {
+            startTimer();
+        }
+    }
+
+    private void persistRuntimeState() {
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putLong(KEY_TIMER_LEFT_MS, timeLeftMillis)
+                .putBoolean(KEY_TIMER_RUNNING, isRunning)
+                .putInt(KEY_SELECTED_TASK_ID, selectedTaskId)
+                .putString(KEY_SELECTED_TASK_NAME, selectedTaskName == null ? "" : selectedTaskName)
+                .apply();
     }
 
     private void showTaskSelectionAndStart() {
@@ -249,8 +278,15 @@ public class FocusFragment extends Fragment {
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        persistRuntimeState();
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
+        persistRuntimeState();
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }

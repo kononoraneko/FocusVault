@@ -65,8 +65,14 @@ public class NotesFragment extends Fragment {
 
             @Override
             public void onDelete(Note note) {
-                databaseHelper.deleteNote(note.getId());
-                loadNotes();
+                new AlertDialog.Builder(requireContext())
+                        .setMessage(getString(R.string.delete_note_confirm, note.getTitle()))
+                        .setPositiveButton(R.string.delete_note, (dialog, which) -> {
+                            databaseHelper.deleteNote(note.getId());
+                            loadNotes();
+                        })
+                        .setNegativeButton(R.string.cancel, null)
+                        .show();
             }
         });
 

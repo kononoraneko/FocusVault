@@ -86,22 +86,27 @@ public class ProfileFragment extends Fragment {
             }
         });
 
-        saveTimerButton.setOnClickListener(v -> {
-            prefs.edit()
-                    .putInt(KEY_WORK_MIN, workPicker.getValue())
-                    .putInt(KEY_BREAK_MIN, breakPicker.getValue())
-                    .putInt(KEY_LONG_BREAK_MIN, longBreakPicker.getValue())
-                    .putInt(KEY_DAILY_GOAL, dailyGoalPicker.getValue())
-                    .putInt(KEY_NOTIFY_HOUR, notifyHourPicker.getValue())
-                    .putInt(KEY_NOTIFY_MINUTE, notifyMinutePicker.getValue())
-                    .apply();
+        saveTimerButton.setOnClickListener(v -> new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.save_timer_settings)
+                .setMessage(R.string.timer_settings_reset_confirm)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    prefs.edit()
+                            .putInt(KEY_WORK_MIN, workPicker.getValue())
+                            .putInt(KEY_BREAK_MIN, breakPicker.getValue())
+                            .putInt(KEY_LONG_BREAK_MIN, longBreakPicker.getValue())
+                            .putInt(KEY_DAILY_GOAL, dailyGoalPicker.getValue())
+                            .putInt(KEY_NOTIFY_HOUR, notifyHourPicker.getValue())
+                            .putInt(KEY_NOTIFY_MINUTE, notifyMinutePicker.getValue())
+                            .apply();
 
-            if (notificationsSwitch.isChecked()) {
-                scheduleReminder(notifyHourPicker.getValue(), notifyMinutePicker.getValue());
-            }
+                    if (notificationsSwitch.isChecked()) {
+                        scheduleReminder(notifyHourPicker.getValue(), notifyMinutePicker.getValue());
+                    }
 
-            Toast.makeText(requireContext(), R.string.timer_settings_saved, Toast.LENGTH_SHORT).show();
-        });
+                    Toast.makeText(requireContext(), R.string.timer_settings_saved, Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show());
 
         resetDataButton.setOnClickListener(v -> new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(R.string.reset_data)
