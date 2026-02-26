@@ -1,8 +1,10 @@
 package com.example.focusvault;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 
 import com.example.focusvault.ui.FocusFragment;
@@ -14,6 +16,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        applyThemeMode();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -37,6 +40,14 @@ public class MainActivity extends AppCompatActivity {
         if (savedInstanceState == null) {
             bottomNavigationView.setSelectedItemId(R.id.nav_today);
         }
+    }
+
+    private void applyThemeMode() {
+        SharedPreferences preferences = getSharedPreferences("focusvault_prefs", MODE_PRIVATE);
+        boolean isDark = preferences.getBoolean("dark_theme", false);
+        AppCompatDelegate.setDefaultNightMode(isDark
+                ? AppCompatDelegate.MODE_NIGHT_YES
+                : AppCompatDelegate.MODE_NIGHT_NO);
     }
 
     private void loadFragment(Fragment fragment) {

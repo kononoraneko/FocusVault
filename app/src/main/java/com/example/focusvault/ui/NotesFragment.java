@@ -1,6 +1,7 @@
 package com.example.focusvault.ui;
 
 import android.app.AlertDialog;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -13,6 +14,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,6 +24,7 @@ import com.example.focusvault.data.DatabaseHelper;
 import com.example.focusvault.model.Note;
 import com.example.focusvault.ui.adapter.NoteAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.util.ArrayList;
@@ -29,6 +32,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class NotesFragment extends Fragment {
+
+    private static final String PREFS_NAME = "focusvault_prefs";
+    private static final String KEY_DARK_THEME = "dark_theme";
 
     private DatabaseHelper databaseHelper;
     private NoteAdapter noteAdapter;
@@ -47,6 +53,9 @@ public class NotesFragment extends Fragment {
         FloatingActionButton fab = view.findViewById(R.id.fab_add_note);
         searchInput = view.findViewById(R.id.input_search_notes);
         emptyText = view.findViewById(R.id.text_notes_empty);
+        MaterialSwitch themeSwitch = view.findViewById(R.id.switch_theme);
+
+        setupThemeSwitch(themeSwitch);
 
         noteAdapter = new NoteAdapter(new NoteAdapter.NoteActionListener() {
             @Override
@@ -83,6 +92,19 @@ public class NotesFragment extends Fragment {
         loadNotes();
 
         return view;
+    }
+
+    private void setupThemeSwitch(MaterialSwitch themeSwitch) {
+        SharedPreferences preferences = requireContext().getSharedPreferences(PREFS_NAME, 0);
+        boolean isDark = preferences.getBoolean(KEY_DARK_THEME, false);
+        themeSwitch.setChecked(isDark);
+
+        themeSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            preferences.edit().putBoolean(KEY_DARK_THEME, isChecked).apply();
+            AppCompatDelegate.setDefaultNightMode(isChecked
+                    ? AppCompatDelegate.MODE_NIGHT_YES
+                    : AppCompatDelegate.MODE_NIGHT_NO);
+        });
     }
 
     private void showNoteDialog(@Nullable Note note) {

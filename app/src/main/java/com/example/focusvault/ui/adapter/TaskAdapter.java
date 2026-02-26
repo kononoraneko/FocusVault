@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -19,14 +20,16 @@ import java.util.List;
 
 public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder> {
 
-    public interface OnTaskStatusChangeListener {
+    public interface TaskActionListener {
         void onStatusChanged(Task task, boolean isChecked);
+        void onEdit(Task task);
+        void onDelete(Task task);
     }
 
     private final List<Task> tasks = new ArrayList<>();
-    private final OnTaskStatusChangeListener listener;
+    private final TaskActionListener listener;
 
-    public TaskAdapter(OnTaskStatusChangeListener listener) {
+    public TaskAdapter(TaskActionListener listener) {
         this.listener = listener;
     }
 
@@ -51,6 +54,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         holder.checkBox.setOnCheckedChangeListener(null);
         holder.checkBox.setChecked(task.getIsDone() == 1);
         holder.checkBox.setOnCheckedChangeListener((buttonView, isChecked) -> listener.onStatusChanged(task, isChecked));
+        holder.editButton.setOnClickListener(v -> listener.onEdit(task));
+        holder.deleteButton.setOnClickListener(v -> listener.onDelete(task));
 
         if (task.getIsDone() == 1) {
             holder.title.setPaintFlags(holder.title.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
@@ -79,6 +84,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
         TextView title;
         TextView priority;
         View priorityDot;
+        ImageButton editButton;
+        ImageButton deleteButton;
 
         TaskViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -86,6 +93,8 @@ public class TaskAdapter extends RecyclerView.Adapter<TaskAdapter.TaskViewHolder
             title = itemView.findViewById(R.id.text_task_title);
             priority = itemView.findViewById(R.id.text_task_priority);
             priorityDot = itemView.findViewById(R.id.view_priority_dot);
+            editButton = itemView.findViewById(R.id.button_edit_task);
+            deleteButton = itemView.findViewById(R.id.button_delete_task);
         }
     }
 }

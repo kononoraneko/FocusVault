@@ -42,7 +42,24 @@
             android:id="@+id/view_priority_dot"
             android:layout_width="10dp"
             android:layout_height="10dp"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/priority_dot" />
+
+        <ImageButton
+            android:id="@+id/button_edit_task"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/edit_task"
+            android:src="@android:drawable/ic_menu_edit" />
+
+        <ImageButton
+            android:id="@+id/button_delete_task"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@android:color/transparent"
+            android:contentDescription="@string/delete_task"
+            android:src="@android:drawable/ic_menu_delete" />
     </LinearLayout>
 
 </com.google.android.material.card.MaterialCardView>

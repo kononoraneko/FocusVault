@@ -10,8 +10,6 @@
         <item name="colorOnBackground">@color/md_light_onBackground</item>
         <item name="colorSurface">@color/md_light_surface</item>
         <item name="colorOnSurface">@color/md_light_onSurface</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
     <style name="Theme.FocusVault" parent="Base.Theme.FocusVault" />

@@ -52,9 +52,22 @@ public class TodayFragment extends Fragment {
         doneBar = view.findViewById(R.id.bar_done);
         pendingBar = view.findViewById(R.id.bar_pending);
 
-        taskAdapter = new TaskAdapter((task, isChecked) -> {
-            databaseHelper.updateTaskStatus(task.getId(), isChecked ? 1 : 0);
-            loadData();
+        taskAdapter = new TaskAdapter(new TaskAdapter.TaskActionListener() {
+            @Override
+            public void onStatusChanged(Task task, boolean isChecked) {
+                databaseHelper.updateTaskStatus(task.getId(), isChecked ? 1 : 0);
+                loadData();
+            }
+
+            @Override
+            public void onEdit(Task task) {
+                showEditTaskDialog(task);
+            }
+
+            @Override
+            public void onDelete(Task task) {
+                showDeleteTaskDialog(task);
+            }
         });
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -73,6 +86,14 @@ public class TodayFragment extends Fragment {
     }
 
     private void showAddTaskDialog() {
+        showTaskEditDialog(null);
+    }
+
+    private void showEditTaskDialog(Task task) {
+        showTaskEditDialog(task);
+    }
+
+    private void showTaskEditDialog(@Nullable Task task) {
         LinearLayout container = new LinearLayout(requireContext());
         container.setOrientation(LinearLayout.VERTICAL);
         int padding = (int) (16 * getResources().getDisplayMetrics().density);
@@ -80,22 +101,32 @@ public class TodayFragment extends Fragment {
 
         EditText titleInput = new EditText(requireContext());
         titleInput.setHint(R.string.hint_task_title);
+        if (task != null) {
+            titleInput.setText(task.getTitle());
+        }
         container.addView(titleInput);
 
         EditText priorityInput = new EditText(requireContext());
         priorityInput.setHint(R.string.hint_task_priority);
         priorityInput.setInputType(InputType.TYPE_CLASS_NUMBER);
+        if (task != null) {
+            priorityInput.setText(String.valueOf(task.getPriority()));
+        }
         container.addView(priorityInput);
 
         new AlertDialog.Builder(requireContext())
-                .setTitle(R.string.add_task)
+                .setTitle(task == null ? R.string.add_task : R.string.edit_task)
                 .setView(container)
                 .setPositiveButton(R.string.save, (dialog, which) -> {
                     String title = titleInput.getText().toString().trim();
                     String priorityText = priorityInput.getText().toString().trim();
                     int priority = parsePriority(priorityText);
                     if (!title.isEmpty()) {
-                        databaseHelper.insertTask(title, databaseHelper.getTodayDate(), priority);
+                        if (task == null) {
+                            databaseHelper.insertTask(title, databaseHelper.getTodayDate(), priority);
+                        } else {
+                            databaseHelper.updateTask(task.getId(), title, priority);
+                        }
                         loadData();
                     }
                 })
@@ -103,6 +134,16 @@ public class TodayFragment extends Fragment {
                 .show();
     }
 
+    private void showDeleteTaskDialog(Task task) {
+        new AlertDialog.Builder(requireContext())
+                .setMessage(getString(R.string.delete_task_confirm, task.getTitle()))
+                .setPositiveButton(R.string.delete_task, (dialog, which) -> {
+                    databaseHelper.deleteTask(task.getId());
+                    loadData();
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
 
     private int parsePriority(String priorityText) {
         if (priorityText == null || priorityText.isEmpty()) {

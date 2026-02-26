@@ -30,12 +30,15 @@ public class FocusFragment extends Fragment {
 
     private TextView timerText;
     private TextView sessionsTodayText;
+    private TextView selectedTaskText;
+    private Button startButton;
     private CircularProgressIndicator timerProgress;
     private CountDownTimer countDownTimer;
     private long timeLeftMillis;
     private int selectedDurationMin = DEFAULT_DURATION_MIN;
     private boolean isRunning = false;
     private int selectedTaskId = -1;
+    private String selectedTaskName = "";
     private String sessionStartTime;
     private DatabaseHelper databaseHelper;
 
@@ -47,9 +50,10 @@ public class FocusFragment extends Fragment {
 
         databaseHelper = new DatabaseHelper(requireContext());
         timerText = view.findViewById(R.id.text_timer);
+        selectedTaskText = view.findViewById(R.id.text_selected_task);
         sessionsTodayText = view.findViewById(R.id.text_focus_sessions_today);
         timerProgress = view.findViewById(R.id.progress_timer);
-        Button startButton = view.findViewById(R.id.button_start);
+        startButton = view.findViewById(R.id.button_start);
         Button pauseButton = view.findViewById(R.id.button_pause);
         Button resetButton = view.findViewById(R.id.button_reset);
         Chip chip25 = view.findViewById(R.id.chip_25);
@@ -73,6 +77,8 @@ public class FocusFragment extends Fragment {
         updateTimerText();
         updateTimerProgress();
         updateSessionStats();
+        updateSelectedTaskText();
+        updateStartButtonText();
 
         startButton.setOnClickListener(v -> {
             if (!isRunning) {
@@ -94,6 +100,7 @@ public class FocusFragment extends Fragment {
     public void onResume() {
         super.onResume();
         updateSessionStats();
+        updateSelectedTaskText();
     }
 
     private void showTaskSelectionAndStart() {
@@ -115,6 +122,8 @@ public class FocusFragment extends Fragment {
                 .setTitle(R.string.select_task)
                 .setItems(titles, (dialog, which) -> {
                     selectedTaskId = tasks.get(which).getId();
+                    selectedTaskName = tasks.get(which).getTitle();
+                    updateSelectedTaskText();
                     startTimer();
                 })
                 .show();
@@ -128,6 +137,7 @@ public class FocusFragment extends Fragment {
                 timeLeftMillis = millisUntilFinished;
                 updateTimerText();
                 updateTimerProgress();
+                updateStartButtonText();
             }
 
             @Override
@@ -146,12 +156,14 @@ public class FocusFragment extends Fragment {
             }
         }.start();
         isRunning = true;
+        updateStartButtonText();
     }
 
     private void pauseTimer() {
         if (countDownTimer != null && isRunning) {
             countDownTimer.cancel();
             isRunning = false;
+            updateStartButtonText();
         }
     }
 
@@ -162,8 +174,11 @@ public class FocusFragment extends Fragment {
         timeLeftMillis = minutesToMillis(selectedDurationMin);
         isRunning = false;
         selectedTaskId = -1;
+        selectedTaskName = "";
         updateTimerText();
         updateTimerProgress();
+        updateSelectedTaskText();
+        updateStartButtonText();
     }
 
     private void updateTimerText() {
@@ -181,6 +196,27 @@ public class FocusFragment extends Fragment {
     private void updateSessionStats() {
         int count = databaseHelper.getTodayPomodoroCount(databaseHelper.getTodayDate());
         sessionsTodayText.setText(getString(R.string.focus_sessions_today, count));
+    }
+
+    private void updateSelectedTaskText() {
+        if (selectedTaskId == -1) {
+            selectedTaskText.setText(getString(R.string.focus_selected_task_none));
+        } else {
+            selectedTaskText.setText(getString(R.string.focus_selected_task, selectedTaskName));
+        }
+    }
+
+    private void updateStartButtonText() {
+        if (isRunning) {
+            startButton.setText(R.string.start_running);
+            startButton.setEnabled(false);
+        } else if (selectedTaskId != -1 && timeLeftMillis < minutesToMillis(selectedDurationMin)) {
+            startButton.setText(R.string.start_resume);
+            startButton.setEnabled(true);
+        } else {
+            startButton.setText(R.string.start);
+            startButton.setEnabled(true);
+        }
     }
 
     private long minutesToMillis(int minutes) {

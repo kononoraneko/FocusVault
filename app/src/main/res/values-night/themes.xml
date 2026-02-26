@@ -10,7 +10,5 @@
         <item name="colorOnBackground">@color/md_dark_onBackground</item>
         <item name="colorSurface">@color/md_dark_surface</item>
         <item name="colorOnSurface">@color/md_dark_onSurface</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 </resources>
