@@ -66,7 +66,7 @@ public class ReminderReceiver extends BroadcastReceiver {
                 .setAutoCancel(true);
 
         if (actionTitle != null && actionIntent != null) {
-            builder.addAction(0, actionTitle, actionIntent);
+            builder.addAction(android.R.drawable.ic_media_play, actionTitle, actionIntent);
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

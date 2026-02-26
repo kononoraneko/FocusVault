@@ -21,8 +21,6 @@ import com.example.focusvault.model.Task;
 import com.example.focusvault.notifications.FocusTimerReceiver;
 import com.google.android.material.progressindicator.CircularProgressIndicator;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
@@ -57,7 +55,6 @@ public class FocusFragment extends Fragment {
     private boolean isRunning = false;
     private int selectedTaskId = -1;
     private String selectedTaskName = "";
-    private String sessionStartTime;
     private String activePhase = PHASE_WORK;
     private long phaseEndAtMillis = 0L;
     private DatabaseHelper databaseHelper;
@@ -135,9 +132,9 @@ public class FocusFragment extends Fragment {
 
     private void loadTimerSettings() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
-        selectedDurationMin = prefs.getInt(KEY_WORK_MIN, 25);
-        breakDurationMin = prefs.getInt(KEY_BREAK_MIN, 5);
-        longBreakDurationMin = prefs.getInt(KEY_LONG_BREAK_MIN, 15);
+        selectedDurationMin = sanitizeMinutes(prefs.getInt(KEY_WORK_MIN, 25));
+        breakDurationMin = sanitizeMinutes(prefs.getInt(KEY_BREAK_MIN, 5));
+        longBreakDurationMin = sanitizeMinutes(prefs.getInt(KEY_LONG_BREAK_MIN, 15));
         timerSettingsInfoText.setText(getString(R.string.focus_timer_settings_info, selectedDurationMin, breakDurationMin, longBreakDurationMin));
     }
 
@@ -172,6 +169,9 @@ public class FocusFragment extends Fragment {
     }
 
     private void persistRuntimeState() {
+        if (!isAdded()) {
+            return;
+        }
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit()
                 .putLong(KEY_TIMER_LEFT_MS, timeLeftMillis)
@@ -212,6 +212,9 @@ public class FocusFragment extends Fragment {
     }
 
     private void startTimer(String phase, boolean restoring) {
+        if (!isAdded()) {
+            return;
+        }
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
@@ -219,13 +222,13 @@ public class FocusFragment extends Fragment {
         activePhase = phase;
         long totalPhaseMillis = getPhaseDurationMillis(phase);
         if (!restoring) {
-            if (PHASE_WORK.equals(phase)) {
-                sessionStartTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-            }
             if (timeLeftMillis <= 0 || timeLeftMillis > totalPhaseMillis) {
                 timeLeftMillis = totalPhaseMillis;
             }
             phaseEndAtMillis = System.currentTimeMillis() + timeLeftMillis;
+            if (PHASE_WORK.equals(phase)) {
+                FocusTimerReceiver.markWorkSessionStarted(requireContext(), selectedTaskId);
+            }
             FocusTimerReceiver.startPhaseAt(requireContext(), phase, phaseEndAtMillis);
         }
 
@@ -240,6 +243,12 @@ public class FocusFragment extends Fragment {
 
             @Override
             public void onFinish() {
+                if (!isAdded()) {
+                    isRunning = false;
+                    timeLeftMillis = 0;
+                    return;
+                }
+
                 isRunning = false;
                 timeLeftMillis = 0;
                 phaseEndAtMillis = 0L;
@@ -248,7 +257,12 @@ public class FocusFragment extends Fragment {
                 FocusTimerReceiver.cancelPhase(requireContext());
 
                 if (PHASE_WORK.equals(activePhase)) {
-                    databaseHelper.insertPomodoroSession(sessionStartTime, selectedDurationMin, selectedTaskId);
+                    FocusTimerReceiver.markWorkSessionRecorded(requireContext());
+                    databaseHelper.insertPomodoroSession(
+                            java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME),
+                            selectedDurationMin,
+                            selectedTaskId
+                    );
                     updateSessionStats();
                     showBreakStartDialog();
                 } else {
@@ -267,6 +281,9 @@ public class FocusFragment extends Fragment {
     }
 
     private void showBreakStartDialog() {
+        if (!isAdded()) {
+            return;
+        }
         new AlertDialog.Builder(requireContext())
                 .setTitle(R.string.focus_work_finished_title)
                 .setMessage(getString(R.string.focus_start_break_confirm, breakDurationMin))
@@ -294,7 +311,9 @@ public class FocusFragment extends Fragment {
         if (countDownTimer != null && isRunning) {
             countDownTimer.cancel();
             isRunning = false;
-            FocusTimerReceiver.cancelPhase(requireContext());
+            if (isAdded()) {
+                FocusTimerReceiver.cancelPhase(requireContext());
+            }
             updateStartButtonText();
         }
     }
@@ -303,7 +322,9 @@ public class FocusFragment extends Fragment {
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
-        FocusTimerReceiver.cancelPhase(requireContext());
+        if (isAdded()) {
+            FocusTimerReceiver.cancelPhase(requireContext());
+        }
         switchToWorkMode();
         isRunning = false;
         selectedTaskId = -1;
@@ -362,7 +383,11 @@ public class FocusFragment extends Fragment {
     }
 
     private long minutesToMillis(int minutes) {
-        return minutes * 60L * 1000L;
+        return sanitizeMinutes(minutes) * 60L * 1000L;
+    }
+
+    private int sanitizeMinutes(int minutes) {
+        return Math.max(1, minutes);
     }
 
     @Override
@@ -373,10 +398,10 @@ public class FocusFragment extends Fragment {
 
     @Override
     public void onDestroyView() {
-        super.onDestroyView();
         persistRuntimeState();
         if (countDownTimer != null) {
             countDownTimer.cancel();
         }
+        super.onDestroyView();
     }
 }

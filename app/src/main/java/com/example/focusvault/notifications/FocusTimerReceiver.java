@@ -9,6 +9,10 @@ import android.content.SharedPreferences;
 import android.os.Build;
 
 import com.example.focusvault.R;
+import com.example.focusvault.data.DatabaseHelper;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class FocusTimerReceiver extends BroadcastReceiver {
 
@@ -24,18 +28,24 @@ public class FocusTimerReceiver extends BroadcastReceiver {
     public static final String KEY_END_AT_MS = "focus_end_at_ms";
     public static final String KEY_RUNNING = "focus_running";
     public static final String KEY_BREAK_MIN = "break_minutes";
+    public static final String KEY_WORK_MIN = "work_minutes";
+    public static final String KEY_SELECTED_TASK_ID = "selected_task_id";
+    public static final String KEY_SESSION_START_TIME = "focus_session_start_time";
+    public static final String KEY_WORK_RECORDED = "focus_work_recorded";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent != null ? intent.getAction() : null;
         if (ACTION_TIMER_FINISH.equals(action)) {
-            handleTimerFinish(context, intent.getStringExtra(EXTRA_PHASE));
+            String phase = intent != null ? intent.getStringExtra(EXTRA_PHASE) : null;
+            handleTimerFinish(context, phase);
             return;
         }
 
         if (ACTION_START_BREAK.equals(action)) {
-            int breakMinutes = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-                    .getInt(KEY_BREAK_MIN, 5);
+            int breakMinutes = sanitizeMinutes(
+                    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY_BREAK_MIN, 5)
+            );
             startPhase(context, PHASE_BREAK, breakMinutes);
             ReminderReceiver.showCustomNotification(
                     context,
@@ -63,6 +73,8 @@ public class FocusTimerReceiver extends BroadcastReceiver {
             return;
         }
 
+        recordCompletedWorkSession(context, prefs);
+
         Intent startBreakIntent = new Intent(context, FocusTimerReceiver.class);
         startBreakIntent.setAction(ACTION_START_BREAK);
         PendingIntent startBreakPendingIntent = PendingIntent.getBroadcast(
@@ -83,7 +95,8 @@ public class FocusTimerReceiver extends BroadcastReceiver {
     }
 
     public static void startPhase(Context context, String phase, int minutes) {
-        long endAt = System.currentTimeMillis() + minutes * 60_000L;
+        int safeMinutes = sanitizeMinutes(minutes);
+        long endAt = System.currentTimeMillis() + safeMinutes * 60_000L;
         startPhaseAt(context, phase, endAt);
     }
 
@@ -112,6 +125,39 @@ public class FocusTimerReceiver extends BroadcastReceiver {
         }
     }
 
+    public static void markWorkSessionStarted(Context context, int taskId) {
+        SharedPreferences prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        prefs.edit()
+                .putInt(KEY_SELECTED_TASK_ID, taskId)
+                .putString(KEY_SESSION_START_TIME, LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME))
+                .putBoolean(KEY_WORK_RECORDED, false)
+                .apply();
+    }
+
+    public static void markWorkSessionRecorded(Context context) {
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_WORK_RECORDED, true)
+                .apply();
+    }
+
+    private void recordCompletedWorkSession(Context context, SharedPreferences prefs) {
+        if (prefs.getBoolean(KEY_WORK_RECORDED, false)) {
+            return;
+        }
+
+        String startTime = prefs.getString(KEY_SESSION_START_TIME, null);
+        if (startTime == null || startTime.isEmpty()) {
+            startTime = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        }
+
+        int taskId = prefs.getInt(KEY_SELECTED_TASK_ID, -1);
+        int duration = sanitizeMinutes(prefs.getInt(KEY_WORK_MIN, 25));
+        DatabaseHelper db = new DatabaseHelper(context);
+        db.insertPomodoroSession(startTime, duration, taskId);
+        markWorkSessionRecorded(context);
+    }
+
     private static void scheduleFinishAlarm(Context context, String phase, long triggerAtMillis) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
         if (alarmManager == null) {
@@ -137,5 +183,9 @@ public class FocusTimerReceiver extends BroadcastReceiver {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
+    }
+
+    private static int sanitizeMinutes(int minutes) {
+        return Math.max(1, minutes);
     }
 }
