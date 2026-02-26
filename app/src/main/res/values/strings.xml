@@ -61,6 +61,10 @@
     <string name="focus_break_started_text">Перерыв на %1$d мин уже запущен.</string>
     <string name="focus_break_finished_title">Перерыв завершен</string>
     <string name="focus_break_finished_text">Перерыв закончился. Можно возвращаться к фокусу.</string>
+    <string name="focus_notification_work_title">Фокус: рабочая сессия</string>
+    <string name="focus_notification_break_title">Фокус: перерыв</string>
+    <string name="focus_notification_running">Таймер запущен</string>
+    <string name="focus_notification_paused">Таймер на паузе</string>
     <string name="search_notes">Поиск по заметкам</string>
     <string name="notes_empty">Заметок не найдено</string>
     <string name="notes_for_date">Заметки за выбранный день</string>

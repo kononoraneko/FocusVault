@@ -91,6 +91,7 @@ public class FocusFragment extends Fragment {
         resetButton.setOnClickListener(v -> resetTimer());
 
         loadStateAndRefresh();
+        FocusTimerReceiver.refreshTimerNotification(requireContext());
         return view;
     }
 
@@ -98,6 +99,7 @@ public class FocusFragment extends Fragment {
     public void onResume() {
         super.onResume();
         loadStateAndRefresh();
+        FocusTimerReceiver.refreshTimerNotification(requireContext());
     }
 
     @Override
@@ -188,7 +190,7 @@ public class FocusFragment extends Fragment {
         timeLeftMillis = Math.max(0L, phaseEndAtMillis - now);
 
         if (isAdded()) {
-            FocusTimerReceiver.cancelPhase(requireContext());
+            FocusTimerReceiver.pausePhase(requireContext());
         }
 
         refreshUi();
@@ -332,7 +334,6 @@ public class FocusFragment extends Fragment {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         prefs.edit()
                 .putLong("timer_left_ms", timeLeftMillis)
-                .putBoolean("timer_running", isRunning)
                 .putInt(KEY_SELECTED_TASK_ID, selectedTaskId)
                 .putString(KEY_SELECTED_TASK_NAME, selectedTaskName)
                 .putString(KEY_PHASE, activePhase)

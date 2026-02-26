@@ -20,6 +20,7 @@ import com.example.focusvault.R;
 public class ReminderReceiver extends BroadcastReceiver {
 
     public static final String CHANNEL_ID = "focusvault_reminders";
+    public static final int FOCUS_TIMER_NOTIFICATION_ID = 4010;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -77,6 +78,73 @@ public class ReminderReceiver extends BroadcastReceiver {
         }
 
         NotificationManagerCompat.from(context).notify(id, builder.build());
+    }
+
+    public static void showFocusTimerNotification(
+            Context context,
+            String phase,
+            long endAtMillis,
+            boolean isRunning,
+            PendingIntent primaryAction,
+            String primaryActionTitle,
+            PendingIntent secondaryAction,
+            String secondaryActionTitle
+    ) {
+        createNotificationChannel(context);
+
+        Intent openIntent = new Intent(context, MainActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent contentIntent = PendingIntent.getActivity(
+                context,
+                1010,
+                openIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
+        int phaseTitle = FocusTimerReceiver.PHASE_BREAK.equals(phase)
+                ? R.string.focus_notification_break_title
+                : R.string.focus_notification_work_title;
+        int statusText = isRunning
+                ? R.string.focus_notification_running
+                : R.string.focus_notification_paused;
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+                .setContentTitle(context.getString(phaseTitle))
+                .setContentText(context.getString(statusText))
+                .setContentIntent(contentIntent)
+                .setOnlyAlertOnce(true)
+                .setOngoing(true)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setCategory(NotificationCompat.CATEGORY_PROGRESS);
+
+        if (isRunning && endAtMillis > System.currentTimeMillis()) {
+            builder.setWhen(endAtMillis)
+                    .setUsesChronometer(true)
+                    .setChronometerCountDown(true);
+        }
+
+        if (primaryAction != null && primaryActionTitle != null) {
+            builder.addAction(android.R.drawable.ic_media_pause, primaryActionTitle, primaryAction);
+        }
+
+        if (secondaryAction != null && secondaryActionTitle != null) {
+            builder.addAction(android.R.drawable.ic_menu_close_clear_cancel, secondaryActionTitle, secondaryAction);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return;
+            }
+        }
+
+        NotificationManagerCompat.from(context).notify(FOCUS_TIMER_NOTIFICATION_ID, builder.build());
+    }
+
+    public static void cancelFocusTimerNotification(Context context) {
+        NotificationManagerCompat.from(context).cancel(FOCUS_TIMER_NOTIFICATION_ID);
     }
 
     public static void createNotificationChannel(Context context) {
