@@ -34,6 +34,9 @@ public class ProfileFragment extends Fragment {
     private static final String KEY_WORK_MIN = "work_minutes";
     private static final String KEY_BREAK_MIN = "break_minutes";
     private static final String KEY_LONG_BREAK_MIN = "long_break_minutes";
+    private static final String KEY_DAILY_GOAL = "daily_goal";
+    private static final String KEY_NOTIFY_HOUR = "notify_hour";
+    private static final String KEY_NOTIFY_MINUTE = "notify_minute";
 
     public ProfileFragment() {
         super(R.layout.fragment_profile);
@@ -50,12 +53,18 @@ public class ProfileFragment extends Fragment {
         NumberPicker workPicker = view.findViewById(R.id.picker_work_minutes);
         NumberPicker breakPicker = view.findViewById(R.id.picker_break_minutes);
         NumberPicker longBreakPicker = view.findViewById(R.id.picker_long_break_minutes);
+        NumberPicker dailyGoalPicker = view.findViewById(R.id.picker_daily_goal);
+        NumberPicker notifyHourPicker = view.findViewById(R.id.picker_notification_hour);
+        NumberPicker notifyMinutePicker = view.findViewById(R.id.picker_notification_minute);
         Button saveTimerButton = view.findViewById(R.id.button_save_timer_settings);
         Button resetDataButton = view.findViewById(R.id.button_reset_all_data);
 
         setupPicker(workPicker, 10, 90, prefs.getInt(KEY_WORK_MIN, 25));
         setupPicker(breakPicker, 3, 30, prefs.getInt(KEY_BREAK_MIN, 5));
         setupPicker(longBreakPicker, 10, 60, prefs.getInt(KEY_LONG_BREAK_MIN, 15));
+        setupPicker(dailyGoalPicker, 1, 12, prefs.getInt(KEY_DAILY_GOAL, 4));
+        setupPicker(notifyHourPicker, 0, 23, prefs.getInt(KEY_NOTIFY_HOUR, 20));
+        setupPicker(notifyMinutePicker, 0, 59, prefs.getInt(KEY_NOTIFY_MINUTE, 0));
 
         themeSwitch.setChecked(prefs.getBoolean(KEY_DARK_THEME, false));
         notificationsSwitch.setChecked(prefs.getBoolean(KEY_NOTIFICATIONS, false));
@@ -71,7 +80,7 @@ public class ProfileFragment extends Fragment {
             prefs.edit().putBoolean(KEY_NOTIFICATIONS, isChecked).apply();
             if (isChecked) {
                 ensureNotificationPermission();
-                scheduleReminder();
+                scheduleReminder(notifyHourPicker.getValue(), notifyMinutePicker.getValue());
             } else {
                 cancelReminder();
             }
@@ -82,7 +91,15 @@ public class ProfileFragment extends Fragment {
                     .putInt(KEY_WORK_MIN, workPicker.getValue())
                     .putInt(KEY_BREAK_MIN, breakPicker.getValue())
                     .putInt(KEY_LONG_BREAK_MIN, longBreakPicker.getValue())
+                    .putInt(KEY_DAILY_GOAL, dailyGoalPicker.getValue())
+                    .putInt(KEY_NOTIFY_HOUR, notifyHourPicker.getValue())
+                    .putInt(KEY_NOTIFY_MINUTE, notifyMinutePicker.getValue())
                     .apply();
+
+            if (notificationsSwitch.isChecked()) {
+                scheduleReminder(notifyHourPicker.getValue(), notifyMinutePicker.getValue());
+            }
+
             Toast.makeText(requireContext(), R.string.timer_settings_saved, Toast.LENGTH_SHORT).show();
         });
 
@@ -112,7 +129,7 @@ public class ProfileFragment extends Fragment {
         }
     }
 
-    private void scheduleReminder() {
+    private void scheduleReminder(int hour, int minute) {
         Context context = requireContext();
         ReminderReceiver.createNotificationChannel(context);
 
@@ -130,8 +147,8 @@ public class ProfileFragment extends Fragment {
         }
 
         Calendar calendar = Calendar.getInstance();
-        calendar.set(Calendar.HOUR_OF_DAY, 20);
-        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.HOUR_OF_DAY, hour);
+        calendar.set(Calendar.MINUTE, minute);
         calendar.set(Calendar.SECOND, 0);
 
         if (calendar.before(Calendar.getInstance())) {

@@ -3,6 +3,7 @@ package com.example.focusvault.ui;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -202,7 +203,8 @@ public class TodayFragment extends Fragment {
         tasksProgress.setProgress(taskProgressPercent);
         progressLabel.setText(getString(R.string.task_progress_percent, taskProgressPercent, completedCount, total));
 
-        int pomodoroTarget = 4;
+        SharedPreferences prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        int pomodoroTarget = prefs.getInt("daily_goal", 4);
         int pomodoroPercent = Math.min(100, pomodoroCount * 100 / pomodoroTarget);
         pomodoroProgress.setProgress(pomodoroPercent);
         pomodoroProgressLabel.setText(getString(R.string.pomodoro_progress_percent, pomodoroPercent, pomodoroCount, pomodoroTarget));

@@ -154,6 +154,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return notes;
     }
 
+
+    public int getNotesCountByDate(String date) {
+        SQLiteDatabase db = getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_NOTES + " WHERE created_at LIKE ?", new String[]{date + "%"});
+        int count = 0;
+        if (cursor.moveToFirst()) {
+            count = cursor.getInt(0);
+        }
+        cursor.close();
+        return count;
+    }
+
     public int updateNote(int id, String title, String content, int isFavorite) {
         SQLiteDatabase db = getWritableDatabase();
         ContentValues values = new ContentValues();

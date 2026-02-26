@@ -40,18 +40,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <CalendarView
-            android:id="@+id/calendar_notes"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
-
-        <Button
-            android:id="@+id/button_clear_notes_filter"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/notes_filter_all" />
-
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

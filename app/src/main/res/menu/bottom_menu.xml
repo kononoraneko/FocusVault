@@ -9,6 +9,10 @@
         android:icon="@android:drawable/ic_menu_edit"
         android:title="@string/nav_notes" />
     <item
+        android:id="@+id/nav_calendar"
+        android:icon="@android:drawable/ic_menu_month"
+        android:title="@string/nav_calendar" />
+    <item
         android:id="@+id/nav_focus"
         android:icon="@android:drawable/ic_lock_idle_alarm"
         android:title="@string/nav_focus" />

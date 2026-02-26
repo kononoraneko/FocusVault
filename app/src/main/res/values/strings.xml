@@ -2,6 +2,7 @@
     <string name="app_name">FocusVault</string>
     <string name="nav_today">Сегодня</string>
     <string name="nav_notes">Заметки</string>
+    <string name="nav_calendar">Календарь</string>
     <string name="nav_focus">Фокус</string>
     <string name="nav_profile">Профиль</string>
 
@@ -26,7 +27,7 @@
     <string name="priority_value">Приоритет: %1$d</string>
 
     <string name="tasks_progress_label">Прогресс задач</string>
-    <string name="pomodoro_progress_label">Прогресс помидоров (цель: 4)</string>
+    <string name="pomodoro_progress_label">Прогресс помидоров</string>
     <string name="pomodoro_progress_percent">Готово: %1$d%% (%2$d из %3$d)</string>
 
     <string name="start">Старт</string>
@@ -37,7 +38,6 @@
 
     <string name="no_tasks_for_today">Добавьте хотя бы одну задачу на сегодня перед запуском таймера.</string>
     <string name="select_task">Выберите задачу</string>
-    <string name="pomodoro_completed">Сессия завершена! Результат сохранён.</string>
     <string name="pomodoro_completed_with_break">Сессия завершена! Рекомендуемый перерыв: %1$d мин. Длинный перерыв: %2$d мин.</string>
 
     <string name="today_focus_title">Сегодняшний прогресс</string>
@@ -46,25 +46,26 @@
     <string name="no_tasks_yet">Пока нет задач на сегодня</string>
 
     <string name="focus_mode">Режим фокуса</string>
-    <string name="focus_hint">Нажмите «Старт» и выберите задачу. После паузы кнопка меняется на «Продолжить».</string>
     <string name="focus_timer_settings_info">Текущие настройки: работа %1$d мин, короткий перерыв %2$d мин, длинный перерыв %3$d мин.</string>
     <string name="focus_selected_task_none">Выбранная задача: не выбрана</string>
     <string name="focus_selected_task">Выбранная задача: %1$s</string>
     <string name="focus_sessions_today">Завершённых сессий сегодня: %1$d</string>
 
     <string name="search_notes">Поиск по заметкам</string>
-    <string name="notes_empty">Заметок по фильтру не найдено</string>
-    <string name="notes_filter_all">Показать заметки за все дни</string>
+    <string name="notes_empty">Заметок не найдено</string>
+    <string name="notes_for_date">Заметки за выбранный день</string>
 
     <string name="theme_dark">Тёмная тема</string>
-    <string name="notifications_enable">Напоминание каждый день в 20:00</string>
+    <string name="notifications_enable">Ежедневные уведомления</string>
+    <string name="notification_time">Время уведомления (часы/минуты)</string>
     <string name="settings_general">Общие настройки</string>
     <string name="settings_timer">Гибкие настройки таймера</string>
     <string name="work_minutes">Рабочий интервал (мин)</string>
     <string name="break_minutes">Короткий перерыв (мин)</string>
     <string name="long_break_minutes">Длинный перерыв (мин)</string>
-    <string name="save_timer_settings">Сохранить настройки таймера</string>
-    <string name="timer_settings_saved">Настройки таймера сохранены</string>
+    <string name="daily_goal_pomodoro">Цель на день (помидоры)</string>
+    <string name="save_timer_settings">Сохранить настройки</string>
+    <string name="timer_settings_saved">Настройки сохранены</string>
 
     <string name="reset_data">Сбросить все данные</string>
     <string name="reset_data_confirm">Это удалит все задачи, заметки и сессии. Продолжить?</string>
@@ -75,8 +76,14 @@
     <string name="reminder_title">Время сфокусироваться</string>
     <string name="reminder_text">Сделайте одну помидорку и закройте важную задачу.</string>
 
-    <string name="help_today">Справка: добавляйте задачи на сегодня, отмечайте выполнение и следите за двумя прогресс-барами: задачи и помидоры.</string>
-    <string name="help_notes">Справка: выберите день в календаре, чтобы увидеть заметки за дату; кнопка «Показать за все дни» снимает фильтр.</string>
-    <string name="help_focus">Справка: старт запускает сессию по выбранной задаче; длительности работы/перерывов меняются в Профиле.</string>
+    <string name="help_today">Добавляйте задачи и отслеживайте прогресс по задачам и по помидорам. Цель на день меняется в Профиле.</string>
+    <string name="help_notes">Это быстрый список заметок и поиск. Просмотр по датам и статистика вынесены во вкладку «Календарь».</string>
+    <string name="help_focus">Выберите задачу и нажмите старт. Параметры таймера настраиваются в Профиле.</string>
+    <string name="help_calendar">Выберите день в календаре: увидите заметки за дату и подробную статистику за этот день.</string>
     <string name="hide_help">Понятно, скрыть</string>
+
+    <string name="stats_date">Дата: %1$s</string>
+    <string name="stats_tasks">Задачи: %1$d из %2$d выполнено</string>
+    <string name="stats_pomodoro">Помидоры: %1$d</string>
+    <string name="stats_notes">Заметки: %1$d</string>
 </resources>

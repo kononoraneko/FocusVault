@@ -9,8 +9,6 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.CalendarView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -28,8 +26,6 @@ import com.example.focusvault.ui.adapter.NoteAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.textfield.TextInputEditText;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -44,7 +40,6 @@ public class NotesFragment extends Fragment {
     private TextView emptyText;
     private TextInputEditText searchInput;
     private final List<Note> allNotes = new ArrayList<>();
-    private String selectedDateFilter = "";
 
     @Nullable
     @Override
@@ -57,8 +52,6 @@ public class NotesFragment extends Fragment {
         FloatingActionButton fab = view.findViewById(R.id.fab_add_note);
         searchInput = view.findViewById(R.id.input_search_notes);
         emptyText = view.findViewById(R.id.text_notes_empty);
-        CalendarView calendarView = view.findViewById(R.id.calendar_notes);
-        Button clearFilterButton = view.findViewById(R.id.button_clear_notes_filter);
         View helpCard = view.findViewById(R.id.card_notes_help);
         TextView hideHelpButton = view.findViewById(R.id.button_hide_notes_help);
 
@@ -95,20 +88,7 @@ public class NotesFragment extends Fragment {
             }
         });
 
-        calendarView.setOnDateChangeListener((view1, year, month, dayOfMonth) -> {
-            LocalDate date = LocalDate.of(year, month + 1, dayOfMonth);
-            selectedDateFilter = date.format(DateTimeFormatter.ISO_LOCAL_DATE);
-            loadNotes();
-        });
-
-        clearFilterButton.setOnClickListener(v -> {
-            selectedDateFilter = "";
-            calendarView.setDate(System.currentTimeMillis(), true, true);
-            loadNotes();
-        });
-
         fab.setOnClickListener(v -> showNoteDialog(null));
-
         loadNotes();
 
         return view;
@@ -167,11 +147,7 @@ public class NotesFragment extends Fragment {
 
     private void loadNotes() {
         allNotes.clear();
-        if (selectedDateFilter == null || selectedDateFilter.isEmpty()) {
-            allNotes.addAll(databaseHelper.getAllNotes());
-        } else {
-            allNotes.addAll(databaseHelper.getNotesByDate(selectedDateFilter));
-        }
+        allNotes.addAll(databaseHelper.getAllNotes());
         filterNotes(searchInput == null || searchInput.getText() == null ? "" : searchInput.getText().toString());
     }
 

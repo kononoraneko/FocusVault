@@ -5,12 +5,9 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
-import androidx.fragment.app.Fragment;
+import androidx.viewpager2.widget.ViewPager2;
 
-import com.example.focusvault.ui.FocusFragment;
-import com.example.focusvault.ui.NotesFragment;
-import com.example.focusvault.ui.ProfileFragment;
-import com.example.focusvault.ui.TodayFragment;
+import com.example.focusvault.ui.MainPagerAdapter;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 public class MainActivity extends AppCompatActivity {
@@ -22,23 +19,46 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
+        ViewPager2 viewPager = findViewById(R.id.main_view_pager);
+        viewPager.setAdapter(new MainPagerAdapter(this));
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
             if (itemId == R.id.nav_today) {
-                loadFragment(new TodayFragment());
+                viewPager.setCurrentItem(0, true);
                 return true;
             } else if (itemId == R.id.nav_notes) {
-                loadFragment(new NotesFragment());
+                viewPager.setCurrentItem(1, true);
+                return true;
+            } else if (itemId == R.id.nav_calendar) {
+                viewPager.setCurrentItem(2, true);
                 return true;
             } else if (itemId == R.id.nav_focus) {
-                loadFragment(new FocusFragment());
+                viewPager.setCurrentItem(3, true);
                 return true;
             } else if (itemId == R.id.nav_profile) {
-                loadFragment(new ProfileFragment());
+                viewPager.setCurrentItem(4, true);
                 return true;
             }
             return false;
+        });
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                if (position == 0) {
+                    bottomNavigationView.setSelectedItemId(R.id.nav_today);
+                } else if (position == 1) {
+                    bottomNavigationView.setSelectedItemId(R.id.nav_notes);
+                } else if (position == 2) {
+                    bottomNavigationView.setSelectedItemId(R.id.nav_calendar);
+                } else if (position == 3) {
+                    bottomNavigationView.setSelectedItemId(R.id.nav_focus);
+                } else {
+                    bottomNavigationView.setSelectedItemId(R.id.nav_profile);
+                }
+            }
         });
 
         if (savedInstanceState == null) {
@@ -52,12 +72,5 @@ public class MainActivity extends AppCompatActivity {
         AppCompatDelegate.setDefaultNightMode(isDark
                 ? AppCompatDelegate.MODE_NIGHT_YES
                 : AppCompatDelegate.MODE_NIGHT_NO);
-    }
-
-    private void loadFragment(Fragment fragment) {
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fragment_container, fragment)
-                .commit();
     }
 }
