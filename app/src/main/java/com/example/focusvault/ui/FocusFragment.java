@@ -399,22 +399,14 @@ public class FocusFragment extends Fragment {
             return;
         }
 
-        if (isRunning && phaseEndAtMillis > 0L) {
-            timeLeftMillis = Math.max(0L, phaseEndAtMillis - System.currentTimeMillis());
-        }
-
         if (prefs == null) {
             prefs = requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         }
+
         prefs.edit()
-                .putLong(FocusTimerReceiver.KEY_TIMER_LEFT_MS, Math.max(0L, timeLeftMillis))
                 .putInt(KEY_ACTIVE_BREAK_MIN, activeBreakDurationMin)
                 .putInt(KEY_SELECTED_TASK_ID, selectedTaskId)
                 .putString(KEY_SELECTED_TASK_NAME, selectedTaskName)
-                .putString(KEY_PHASE, activePhase)
-                .putLong(FocusTimerReceiver.KEY_END_AT_MS, phaseEndAtMillis)
-                .putBoolean(FocusTimerReceiver.KEY_RUNNING, isRunning)
-                .putString(FocusTimerReceiver.KEY_SESSION_START_TIME, currentSessionStart)
                 .apply();
     }
 
