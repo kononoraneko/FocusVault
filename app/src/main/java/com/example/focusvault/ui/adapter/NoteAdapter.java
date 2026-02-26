@@ -12,6 +12,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.focusvault.R;
 import com.example.focusvault.model.Note;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -48,6 +50,7 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
         Note note = notes.get(position);
         holder.title.setText(note.getTitle());
         holder.content.setText(note.getContent());
+        holder.date.setText(formatDate(note.getCreatedAt()));
         holder.date.setText(note.getCreatedAt());
         holder.editButton.setOnClickListener(v -> listener.onEdit(note));
         holder.deleteButton.setOnClickListener(v -> listener.onDelete(note));
@@ -56,6 +59,15 @@ public class NoteAdapter extends RecyclerView.Adapter<NoteAdapter.NoteViewHolder
     @Override
     public int getItemCount() {
         return notes.size();
+    }
+
+    private String formatDate(String source) {
+        try {
+            LocalDateTime dt = LocalDateTime.parse(source, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            return dt.format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+        } catch (Exception ignored) {
+            return source;
+        }
     }
 
     static class NoteViewHolder extends RecyclerView.ViewHolder {

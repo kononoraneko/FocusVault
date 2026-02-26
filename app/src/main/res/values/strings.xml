@@ -10,6 +10,7 @@
     <string name="save">Сохранить</string>
     <string name="cancel">Отмена</string>
     <string name="hint_task_title">Название задачи</string>
+    <string name="hint_task_priority">Приоритет (1-10)</string>
     <string name="hint_task_priority">Приоритет (число)</string>
     <string name="hint_note_title">Заголовок заметки</string>
     <string name="hint_note_content">Содержимое заметки</string>
@@ -22,4 +23,12 @@
     <string name="no_tasks_for_today">Добавьте хотя бы одну задачу на сегодня перед запуском таймера.</string>
     <string name="select_task">Выберите задачу</string>
     <string name="pomodoro_completed">Pomodoro завершён! Сессия сохранена.</string>
+    <string name="today_focus_title">Сегодняшний прогресс</string>
+    <string name="today_tasks_header">Задачи на сегодня</string>
+    <string name="task_progress_percent">Готово: %1$d%% (%2$d из %3$d)</string>
+    <string name="no_tasks_yet">Пока нет задач на сегодня</string>
+    <string name="focus_mode">Focus Mode</string>
+    <string name="focus_sessions_today">Завершённых сессий сегодня: %1$d</string>
+    <string name="search_notes">Поиск по заметкам</string>
+    <string name="notes_empty">Заметок по запросу не найдено</string>
 </resources>

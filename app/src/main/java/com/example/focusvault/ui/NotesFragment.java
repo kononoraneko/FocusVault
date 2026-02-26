@@ -2,11 +2,14 @@ package com.example.focusvault.ui;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,11 +22,18 @@ import com.example.focusvault.data.DatabaseHelper;
 import com.example.focusvault.model.Note;
 import com.example.focusvault.ui.adapter.NoteAdapter;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 
 public class NotesFragment extends Fragment {
 
     private DatabaseHelper databaseHelper;
     private NoteAdapter noteAdapter;
+    private TextView emptyText;
+    private final List<Note> allNotes = new ArrayList<>();
 
     @Nullable
     @Override
@@ -34,6 +44,8 @@ public class NotesFragment extends Fragment {
         databaseHelper = new DatabaseHelper(requireContext());
         RecyclerView recyclerView = view.findViewById(R.id.recycler_notes);
         FloatingActionButton fab = view.findViewById(R.id.fab_add_note);
+        TextInputEditText searchInput = view.findViewById(R.id.input_search_notes);
+        emptyText = view.findViewById(R.id.text_notes_empty);
 
         noteAdapter = new NoteAdapter(new NoteAdapter.NoteActionListener() {
             @Override
@@ -50,6 +62,21 @@ public class NotesFragment extends Fragment {
 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(noteAdapter);
+
+        searchInput.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterNotes(s == null ? "" : s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
 
         fab.setOnClickListener(v -> showNoteDialog(null));
         loadNotes();
@@ -98,6 +125,24 @@ public class NotesFragment extends Fragment {
     }
 
     private void loadNotes() {
+        allNotes.clear();
+        allNotes.addAll(databaseHelper.getAllNotes());
+        filterNotes("");
+    }
+
+    private void filterNotes(String query) {
+        String q = query.toLowerCase(Locale.getDefault()).trim();
+        List<Note> filtered = new ArrayList<>();
+        for (Note note : allNotes) {
+            String title = note.getTitle() == null ? "" : note.getTitle().toLowerCase(Locale.getDefault());
+            String content = note.getContent() == null ? "" : note.getContent().toLowerCase(Locale.getDefault());
+            if (q.isEmpty() || title.contains(q) || content.contains(q)) {
+                filtered.add(note);
+            }
+        }
+
+        noteAdapter.setNotes(filtered);
+        emptyText.setVisibility(filtered.isEmpty() ? View.VISIBLE : View.GONE);
         noteAdapter.setNotes(databaseHelper.getAllNotes());
     }
 }
