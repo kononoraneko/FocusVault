@@ -1,3 +1,33 @@
 <resources>
     <string name="app_name">FocusVault</string>
+    <string name="nav_today">Today</string>
+    <string name="nav_notes">Notes</string>
+    <string name="nav_focus">Focus</string>
+    <string name="add_task">Добавить задачу</string>
+    <string name="add_note">Добавить заметку</string>
+    <string name="edit_note">Редактировать</string>
+    <string name="delete_note">Удалить</string>
+    <string name="save">Сохранить</string>
+    <string name="cancel">Отмена</string>
+    <string name="hint_task_title">Название задачи</string>
+    <string name="hint_task_priority">Приоритет (1-10)</string>
+    <string name="hint_note_title">Заголовок заметки</string>
+    <string name="hint_note_content">Содержимое заметки</string>
+    <string name="today_pomodoro_count">Помидоров сегодня: %1$d</string>
+    <string name="today_completed_count">Выполнено задач: %1$d</string>
+    <string name="priority_value">Приоритет: %1$d</string>
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="reset">Reset</string>
+    <string name="no_tasks_for_today">Добавьте хотя бы одну задачу на сегодня перед запуском таймера.</string>
+    <string name="select_task">Выберите задачу</string>
+    <string name="pomodoro_completed">Pomodoro завершён! Сессия сохранена.</string>
+    <string name="today_focus_title">Сегодняшний прогресс</string>
+    <string name="today_tasks_header">Задачи на сегодня</string>
+    <string name="task_progress_percent">Готово: %1$d%% (%2$d из %3$d)</string>
+    <string name="no_tasks_yet">Пока нет задач на сегодня</string>
+    <string name="focus_mode">Focus Mode</string>
+    <string name="focus_sessions_today">Завершённых сессий сегодня: %1$d</string>
+    <string name="search_notes">Поиск по заметкам</string>
+    <string name="notes_empty">Заметок по запросу не найдено</string>
 </resources>
