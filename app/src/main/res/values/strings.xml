@@ -90,4 +90,6 @@
     <string name="timer_settings_reset_confirm">Изменения таймера сбросят текущую сессию фокуса. Сохранить?</string>
     <string name="show_calendar">Показать календарь и статистику</string>
     <string name="hide_calendar">Скрыть календарь и статистику</string>
+    <string name="send_test_notification">Отправить тестовое уведомление</string>
+    <string name="notification_test_sent">Тестовое уведомление отправлено</string>
 </resources>

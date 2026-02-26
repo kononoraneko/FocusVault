@@ -1,11 +1,13 @@
 package com.example.focusvault.ui;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CalendarView;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -57,10 +59,12 @@ public class CalendarFragment extends Fragment {
         adapter = new NoteAdapter(new NoteAdapter.NoteActionListener() {
             @Override
             public void onEdit(Note note) {
+                showEditNoteDialog(note);
             }
 
             @Override
             public void onDelete(Note note) {
+                showDeleteNoteDialog(note);
             }
         });
 
@@ -87,6 +91,48 @@ public class CalendarFragment extends Fragment {
         });
 
         return view;
+    }
+
+    private void showEditNoteDialog(Note note) {
+        LinearLayout container = new LinearLayout(requireContext());
+        container.setOrientation(LinearLayout.VERTICAL);
+        int padding = (int) (16 * getResources().getDisplayMetrics().density);
+        container.setPadding(padding, padding, padding, padding);
+
+        EditText titleInput = new EditText(requireContext());
+        titleInput.setHint(R.string.hint_note_title);
+        titleInput.setText(note.getTitle());
+        container.addView(titleInput);
+
+        EditText contentInput = new EditText(requireContext());
+        contentInput.setHint(R.string.hint_note_content);
+        contentInput.setText(note.getContent());
+        container.addView(contentInput);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.edit_note)
+                .setView(container)
+                .setPositiveButton(R.string.save, (dialog, which) -> {
+                    String title = titleInput.getText().toString().trim();
+                    String content = contentInput.getText().toString().trim();
+                    if (!title.isEmpty()) {
+                        databaseHelper.updateNote(note.getId(), title, content, note.getIsFavorite());
+                        loadForDate(selectedDate);
+                    }
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void showDeleteNoteDialog(Note note) {
+        new AlertDialog.Builder(requireContext())
+                .setMessage(getString(R.string.delete_note_confirm, note.getTitle()))
+                .setPositiveButton(R.string.delete_note, (dialog, which) -> {
+                    databaseHelper.deleteNote(note.getId());
+                    loadForDate(selectedDate);
+                })
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
     private void loadForDate(String date) {

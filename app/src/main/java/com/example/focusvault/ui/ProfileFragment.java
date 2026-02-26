@@ -57,6 +57,7 @@ public class ProfileFragment extends Fragment {
         NumberPicker notifyHourPicker = view.findViewById(R.id.picker_notification_hour);
         NumberPicker notifyMinutePicker = view.findViewById(R.id.picker_notification_minute);
         Button saveTimerButton = view.findViewById(R.id.button_save_timer_settings);
+        Button testNotificationButton = view.findViewById(R.id.button_test_notification);
         Button resetDataButton = view.findViewById(R.id.button_reset_all_data);
 
         setupPicker(workPicker, 10, 90, prefs.getInt(KEY_WORK_MIN, 25));
@@ -107,6 +108,13 @@ public class ProfileFragment extends Fragment {
                 })
                 .setNegativeButton(R.string.cancel, null)
                 .show());
+
+
+        testNotificationButton.setOnClickListener(v -> {
+            ensureNotificationPermission();
+            ReminderReceiver.showReminderNotification(requireContext());
+            Toast.makeText(requireContext(), R.string.notification_test_sent, Toast.LENGTH_SHORT).show();
+        });
 
         resetDataButton.setOnClickListener(v -> new androidx.appcompat.app.AlertDialog.Builder(requireContext())
                 .setTitle(R.string.reset_data)

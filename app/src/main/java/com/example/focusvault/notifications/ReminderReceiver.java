@@ -23,6 +23,10 @@ public class ReminderReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        showReminderNotification(context);
+    }
+
+    public static void showReminderNotification(Context context) {
         createNotificationChannel(context);
 
         Intent openIntent = new Intent(context, MainActivity.class);
