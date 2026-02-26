@@ -27,6 +27,13 @@ public class ReminderReceiver extends BroadcastReceiver {
     }
 
     public static void showReminderNotification(Context context) {
+        showCustomNotification(context,
+                context.getString(R.string.reminder_title),
+                context.getString(R.string.reminder_text),
+                3001);
+    }
+
+    public static void showCustomNotification(Context context, String title, String text, int id) {
         createNotificationChannel(context);
 
         Intent openIntent = new Intent(context, MainActivity.class);
@@ -40,8 +47,8 @@ public class ReminderReceiver extends BroadcastReceiver {
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
-                .setContentTitle(context.getString(R.string.reminder_title))
-                .setContentText(context.getString(R.string.reminder_text))
+                .setContentTitle(title)
+                .setContentText(text)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
@@ -53,7 +60,7 @@ public class ReminderReceiver extends BroadcastReceiver {
             }
         }
 
-        NotificationManagerCompat.from(context).notify(3001, builder.build());
+        NotificationManagerCompat.from(context).notify(id, builder.build());
     }
 
     public static void createNotificationChannel(Context context) {
